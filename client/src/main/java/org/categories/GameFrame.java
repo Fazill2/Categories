@@ -4,7 +4,7 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-public class gameFrame extends JFrame implements ActionListener {
+public class GameFrame extends JFrame implements ActionListener {
     static JTextField textField;
     static JButton button;
     static JLabel basicLabel;
@@ -14,7 +14,7 @@ public class gameFrame extends JFrame implements ActionListener {
     static JPanel loginPanel;
     String category;
     String letter;
-    public gameFrame(int width, int height, String category, String letter){
+    public GameFrame(int width, int height, String category, String letter){
         super("Categories");
         this.category = category;
         this.letter = letter;
