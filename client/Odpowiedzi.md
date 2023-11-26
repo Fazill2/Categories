@@ -3,7 +3,7 @@
 Kto, kiedy i jak wybiera tryb?
 
 ### Odpowiedź:
-Tryb będzie wybierany przez użytkownika w momencie tworzenia gry.
+Tryb będzie losowany (albo będzie wybierany przez głsoowanie)
 
 ------------------
 > 2. Gra:
@@ -14,7 +14,7 @@ Tryb będzie wybierany przez użytkownika w momencie tworzenia gry.
 
 Z tego wynika, że gra trwa jedno pytanie. Czy to chcieliście napisać?
 ### Odpowiedź:
-Nie, gra będzie składała się z kilku rund (podanych jako parametr) albo do momentu kiedy wyjdą wszyscy gracze albo zostanie jeden.
+Nie, gra będzie składała się z kilku rund (podany w kodzie jako stała/parametr) albo do momentu kiedy wyjdą wszyscy gracze albo zostanie jeden.
 
 ---
 > 2. Gra będzie premiowała czas (…) odpowiedzi.
@@ -29,17 +29,15 @@ Za szybszą poprawną odpowiedź gracz dostaje dodatkowe punkty. Przykładowo:
 ---
 Kiedy zaczyna się gra?
 ### Odpowiedź:
-Gra zaczyna się w momencie, kiedy do gry dołączy dwóch graczy i przynajmniej dwie osoby potwierdzą swoją gotowość do gry.
+Gra zaczyna się w momencie, kiedy do gry dołączy przynajmniej dwóch graczy i przynajmniej 51% z graczy w lobby potwierdzi gotowość do gry.
 
 ---
 Co widzą użytkownicy przed grą / w trakcie gry / po skończeniu gry?
 ### Odpowiedź:
 Przed grą:
-- Gracze widzą pozostałych graczy i mogą potwierdzić swoją gotowość do gry.
-- Jeden z graczy dostosowuje parametry konfiguracyjne (liczba rund itd..)
+- Gracze widzą liczbę pozostałych graczy i mogą potwierdzić swoją gotowość do gry.
 W trakcie gry:
 - Gracze widzą kategorię (np. Państwa) i muszą podać konkretne Państwo rozpoczynające się na podaną literę (np. A).
-- Gracze widzą pozostały czas na odpowiedź.
 - Gracze widzą swoje punkty.
 Po skończeniu gry:
 - Gracze widzą swoje punkty.
