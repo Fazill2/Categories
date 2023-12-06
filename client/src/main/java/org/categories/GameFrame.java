@@ -8,17 +8,13 @@ import java.util.Locale;
 
 public class GameFrame extends JFrame {
     JTextField textField;
-    JButton button;
+    JButton submitButton = new JButton("Submit Answer");
+    JButton loginButton = new JButton("Submit Name");;
     JLabel basicLabel;
     JLabel categoryLabel;
     JLabel letterLabel;
     JPanel gamePanel;
     JPanel loginPanel;
-    String category;
-    String letter;
-    String name;
-    Boolean loggedIn = false;
-    Connector connector;
     public GameFrame(int width, int height){
         super("Categories");
         this.setSize(width, height);
@@ -32,37 +28,34 @@ public class GameFrame extends JFrame {
         categoryLabel = new JLabel("Current category: ");
         letterLabel = new JLabel("Current letter: ");
         textField = new JTextField("enter your answer", 26);
-        button = new JButton("Submit Answer");
-        gamePanel.add(basicLabel);
         gamePanel.add(categoryLabel);
         gamePanel.add(letterLabel);
         gamePanel.add(textField);
-        gamePanel.add(button);
+        gamePanel.add(submitButton);
+        this.add(gamePanel);
     }
 
     public void createLoginPanel() {
         loginPanel = new JPanel();
         basicLabel = new JLabel("Enter your name: ");
         textField = new JTextField("enter your name", 16);
-        button = new JButton("Submit Name");
         loginPanel.add(basicLabel);
         loginPanel.add(textField);
-        loginPanel.add(button);
+        loginPanel.add(loginButton);
+        this.add(loginPanel);
     }
 
-
     public void useGamePanel(){
-        this.createGamePanel();
-        this.setContentPane(gamePanel);
+        this.loginPanel.setVisible(false);
+        this.gamePanel.setVisible(true);
     }
 
     public void useLoginPanel(){
-        this.createLoginPanel();
-        this.setContentPane(loginPanel);
+        this.loginPanel.setVisible(true);
+        this.gamePanel.setVisible(false);
     }
 
     public void connectionError(){
-        // create popup window that says "connection error"
         JOptionPane.showMessageDialog(null, "Connection error");
     }
 }
