@@ -3,15 +3,30 @@ package org.categories;
 import javax.swing.*;
 
 public class GameFrame extends JFrame {
+    String username;
+
     JTextField textField;
     JTextField gameTextField;
+
     JButton submitButton = new JButton("Submit Answer");
     JButton loginButton = new JButton("Submit Name");
+    JButton lobbyReadyButton = new JButton("Yes");
+
+    JLabel lobbyLabel;
+    JLabel waitingLabel;
     JLabel basicLabel;
     JLabel categoryLabel;
     JLabel letterLabel;
+    JLabel totalUsers;
+
     JPanel gamePanel;
+    JPanel waitingPanel;
     JPanel loginPanel;
+    JPanel lobbyPanel;
+    JPanel resultsPanel;
+
+    JTable resultsTable;
+
     public GameFrame(int width, int height){
         super("Categories");
         this.setSize(width, height);
@@ -40,21 +55,46 @@ public class GameFrame extends JFrame {
         loginPanel.add(loginButton);
     }
 
-    public void useGamePanel(){
-        this.loginPanel.setVisible(false);
-        this.gamePanel.setVisible(true);
+    public void createLobbyPanel(String user) {
+        username = user;
+        lobbyPanel = new JPanel();
+        lobbyLabel = new JLabel(username+", are you ready to play?");
+        lobbyPanel.add(lobbyLabel);
+        lobbyPanel.add(lobbyReadyButton);
     }
 
-    public void useLoginPanel(){
-        this.loginPanel.setVisible(true);
-        this.gamePanel.setVisible(false);
+    public void createWaitingPanel() {
+        waitingPanel = new JPanel();
+        waitingLabel = new JLabel("Waiting for players..");
+        totalUsers = new JLabel("Currently 1/4 players are ready.");
+
+        waitingPanel.add(waitingLabel);
+        waitingPanel.add(totalUsers);
     }
 
-    public void connectionError(){
-        JOptionPane.showMessageDialog(null, "Connection error");
+    public void createGameResultsPanel() {
+        resultsPanel = new JPanel();
+
+        String[][] data = {
+                { "1", "Janir", "2137" },
+                { "2", "Faziil", "213" },
+                { "3", "JuanPabloII", "21" },
+                { "4", "Juan Pablo III", "2" }
+        };
+
+        // Column Names
+        String[] columnNames = { "Position", "Username", "Points" };
+
+        // Initializing the JTable
+        resultsTable = new JTable(data, columnNames);
+        resultsTable.setBounds(0, 0, 30, 20);
+
+        // adding it to JScrollPane
+        JScrollPane sp = new JScrollPane(resultsTable);
+        resultsPanel.add(sp);
     }
 
-    public void loginTaken(){
-        JOptionPane.showMessageDialog(null, "Login taken. Please try again.");
+    public void error(String message){
+        JOptionPane.showMessageDialog(null, message);
     }
 }

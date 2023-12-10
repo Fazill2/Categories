@@ -1,13 +1,11 @@
-package org.categories;// Connector.java
-import java.io.BufferedReader;
+package org.categories;
+
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.Socket;
 
 public class Connector {
 
     private Socket socket;
-    private BufferedReader reader;
     private String receivedMessage;
 
     public Connector() {
@@ -16,15 +14,17 @@ public class Connector {
     public void connect(String host, Integer port) {
         try {
             socket = new Socket(host, port);
-            reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             startReceivingThread();
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
     }
 
-    public void send(String message) throws IOException {
-        socket.getOutputStream().write(message.getBytes());
+    public void send(String msg) throws IOException {
+        String length = msg.length() > 9 ? "" + msg.length() : "0" + msg.length();
+        msg = length + msg;
+        System.out.println(msg);
+        socket.getOutputStream().write(msg.getBytes());
     }
 
     public synchronized String receive() throws IOException, InterruptedException {
@@ -47,7 +47,7 @@ public class Connector {
                     }
                 }
             } catch (IOException e) {
-                throw new IllegalStateException("Issue with receiving messages",e);
+                throw new IllegalStateException("Issue with receiving messages", e);
             }
         });
         receiveThread.start();
@@ -59,7 +59,7 @@ public class Connector {
         return new String(buffer, 0, read);
     }
 
-    public void close() throws IOException {
-        socket.close();
-    }
+//    public void close() throws IOException {
+//        socket.close();
+//    }
 }
