@@ -5,17 +5,21 @@ import java.io.IOException;
 import java.util.Properties;
 
 public class Main {
-    static boolean proceedDirectlyToResults = false;
+    static boolean proceedDirectlyToResults = true;
     static boolean proceedDirectlyToGame = true;
+
+    static int round;
+    public static Connector connector = new Connector();
+
+    static String login;
+
+    static GameFrame gameFrame = new GameFrame(500,500);
 
     public static void main(String[] args) {
         Config config = new Config();
         Properties properties = config.readConfigFile("config.properties");
         String host = properties.getProperty("host", "localhost");
         int port = Integer.parseInt(properties.getProperty("port", "2100"));
-
-        Connector connector = new Connector();
-        GameFrame gameFrame = new GameFrame(500,500);
 
         connectToLocalhost(gameFrame, connector, host, port);
         loginActionListener(gameFrame, connector);
@@ -49,6 +53,7 @@ public class Main {
                     while (true) {
                         try {
                             connector.connect(host, port);
+                            startReceivingThread();
                             break;
                         } catch (Exception e) {
                             gameFrame.error("Connection error.");
@@ -69,24 +74,12 @@ public class Main {
         });
     }
 
-
-
     private static void loginActionListener(GameFrame gameFrame, Connector connector) {
         gameFrame.loginButton.addActionListener(e -> {
             try {
                 String msg = "LOGIN:" + getText(gameFrame);
                 connector.send(msg);
-                String response = connector.receive().trim();
-                if (response.equals("OK")) {
-                    System.out.println(response);
-                    gameFrame.createLobbyPanel(getText(gameFrame));
-                    gameFrame.setContentPane(gameFrame.lobbyPanel);
-                    gameFrame.validate();
-                } else {
-                    System.out.println(response);
-                    gameFrame.error("Login was taken");
-                }
-            } catch (IOException | InterruptedException ex) {
+            } catch (IOException ex) {
                 gameFrame.error(ex.getMessage());
             }
         });
@@ -95,23 +88,14 @@ public class Main {
     private static void lobbyReadyActionListener(GameFrame gameFrame, Connector connector) {
         gameFrame.lobbyReadyButton.addActionListener(e -> {
             try {
-                String msg = "READY";
+                String msg = "ACTIVE:OK";
                 connector.send(msg);
-                if (proceedDirectlyToResults){
-                    gameFrame.createGameResultsPanel();
-                    gameFrame.setContentPane(gameFrame.resultsPanel);
-                    gameFrame.validate();
-                } else if (proceedDirectlyToGame){
-                    gameFrame.createGamePanel();
-                    gameFrame.setContentPane(gameFrame.gamePanel);
-                    gameFrame.validate();
-                }
-                else {
-                    gameFrame.createWaitingPanel();
-                    gameFrame.setContentPane(gameFrame.waitingPanel);
-                    gameFrame.validate();
-                }
 
+                if (proceedDirectlyToResults){
+
+                } else if (proceedDirectlyToGame){
+
+                }
             } catch (IOException ex) {
                 gameFrame.error(ex.getMessage());
             }
@@ -124,5 +108,49 @@ public class Main {
 
     private static String getUserInput(GameFrame gameFrame) {
         return gameFrame.gameTextField.getText();
+    }
+
+    private static void startReceivingThread() {
+        Thread receiveThread = new Thread(() -> {
+            try {
+                while (true) {
+                    String response = connector.receiveMessage().trim();
+                    handleResponse(response);
+                }
+            } catch (IOException e) {
+                throw new IllegalStateException("Issue with receiving messages", e);
+            }
+        });
+        receiveThread.start();
+    }
+
+    private static void handleResponse(String response){
+        if (response.equals("OK")){
+            System.out.println(response);
+            gameFrame.createLobbyPanel(getText(gameFrame));
+            gameFrame.setContentPane(gameFrame.lobbyPanel);
+            gameFrame.validate();
+        } else if (response.equals("NO")) {
+            System.out.println(response);
+            gameFrame.error("Login was taken");
+        } else if (response.equals("WAIT")){
+            gameFrame.createWaitingPanel();
+            gameFrame.setContentPane(gameFrame.waitingPanel);
+            gameFrame.validate();
+        } else if (response.equals("ENDGAME")){
+            gameFrame.createGameResultsPanel();
+            gameFrame.setContentPane(gameFrame.resultsPanel);
+            gameFrame.validate();
+        } else if (response.startsWith("ROUND")){
+            String [] msg = response.split(":");
+            gameFrame.createGamePanel();
+            round = Integer.parseInt(msg[1]);
+            gameFrame.letterLabel.setText("Current letter: " + msg[2]);
+            String category = (Integer.parseInt(msg[3]) == 0) ? "Countries" : "Cities";
+            gameFrame.categoryLabel.setText("Current category: " + category);
+            gameFrame.setContentPane(gameFrame.gamePanel);
+            gameFrame.validate();
+        }
+
     }
 }

@@ -6,7 +6,6 @@ import java.net.Socket;
 public class Connector {
 
     private Socket socket;
-    private String receivedMessage;
 
     public Connector() {
     }
@@ -14,7 +13,7 @@ public class Connector {
     public void connect(String host, Integer port) {
         try {
             socket = new Socket(host, port);
-            startReceivingThread();
+            // startReceivingThread();
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
@@ -27,42 +26,18 @@ public class Connector {
         socket.getOutputStream().write(msg.getBytes());
     }
 
-    public synchronized String receive() throws IOException, InterruptedException {
-        while (receivedMessage == null) {
-            wait();
-        }
-        String message = receivedMessage;
-        receivedMessage = null;
-        return message;
-    }
-
-    private void startReceivingThread() {
-        Thread receiveThread = new Thread(() -> {
-            try {
-                while (true) {
-                    String response = receiveMessage();
-                    synchronized (Connector.this) {
-                        receivedMessage = response;
-                        notify();
-                    }
-                }
-            } catch (IOException e) {
-                throw new IllegalStateException("Issue with receiving messages", e);
-            }
-        });
-        receiveThread.start();
-    }
-
-    private String receiveMessage() throws IOException {
-        byte[] buffer = new byte[1024];
-        int read = socket.getInputStream().read(buffer);
+    String receiveMessage() throws IOException {
+        byte[] lengthBuffer = new byte[2];
+        int read = socket.getInputStream().read(lengthBuffer, 0, 2);
         if (read == -1) {
+            throw new IllegalStateException("Connection closed");
+        }
+        int length = Integer.parseInt(new String(lengthBuffer));
+        byte[] buffer = new byte[length];
+        read = socket.getInputStream().read(buffer, 0, length);
+        if (read != length) {
             throw new IllegalStateException("Connection closed");
         }
         return new String(buffer, 0, read);
     }
-
-//    public void close() throws IOException {
-//        socket.close();
-//    }
 }

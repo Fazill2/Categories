@@ -18,6 +18,8 @@
 #include <fstream>
 #include <deque>
 
+// TODO: change some functions from using list of fds to using list of players
+
 // global value for server file descriptor
 int servFd;
 
@@ -29,7 +31,8 @@ std::map<int, std::string> players;
 std::map<int, int> points;
 // 
 std::map<int, std::string> answers;
-
+int maxRounds = 10;
+int currentRound = 0;
 bool gameStarted = false;
 bool roundStarted = false;
 int playersNum = 0;
@@ -41,8 +44,6 @@ std::unordered_set<std::string> countries;
 
 // message queue for clients, contains messages to be sent and clientfd using vectors
 std::deque<std::pair<int, std::string>> msgQueue;
-
-
 
 // handles client disconnection
 void handleDisconnect(int clientFd){
@@ -95,9 +96,65 @@ void assignPoints(){
     for (auto i = answers.begin(); i != answers.end(); i++){
         std::string ans = i->second;
         if (ans.rfind(currentLetter, 0) == 0 && ((!currentCategory && countries.count(ans)) || (currentCategory && cities.count(ans)))){
-            points[i->first] = 1;
+            points[i->first] += 1;
         }
     }
+}
+
+void endGame(){
+    for (auto i = clientFds.begin(); i != clientFds.end(); i++){
+        send(*i, "07ENDGAME", 9, 0);
+    }
+    shutdown(servFd, SHUT_RDWR);
+    close(servFd);
+    exit(0);
+}
+
+void endRound(){
+    assignPoints();
+    char msg[256] {};
+    const char* msgLen = (currentRound < 10) ? "05" : "06";
+    sprintf(msg, "%sEND:%d", msgLen, currentRound);
+    for (auto i = clientFds.begin(); i != clientFds.end(); i++){
+        send(*i, msg, strlen(msg), 0);
+    }
+    if (currentRound == maxRounds){
+        endGame();
+    }
+    for (auto i = points.begin(); i != points.end(); i++){
+        std::cout << i->first << " " << i->second << std::endl;
+    }
+
+}
+
+void startRound(){
+    roundStarted = true;
+    currentRound++;
+    currentLetter = 'A' + rand()%26;
+    currentCategory = rand()%2;
+    char msg[256] {};
+    int msgLen = (currentRound < 10) ? 11 : 12;
+    sprintf(msg, "%dROUND:%d:%c:%d", msgLen, currentRound, currentLetter, currentCategory);
+    for (auto i = clientFds.begin(); i != clientFds.end(); i++){
+        send(*i, msg, strlen(msg), 0);
+    }
+    alarm(15);
+    std::cout << msg << std::endl;
+}
+
+void startGame(){
+    gameStarted = true;
+    startRound();
+}
+
+int handleActive(int clientFd){
+    activePlayers++;
+    if (gameStarted){
+        send(clientFd, "04WAIT", 6, 0);
+    } else if (activePlayers >= 2 && activePlayers > playersNum/2){
+        startGame();
+    }
+    return 0;
 }
 
 int main(int argc, char ** argv) {
@@ -132,6 +189,11 @@ int main(int argc, char ** argv) {
     // adding server socket to epoll, so we can accept new connections
     epoll_ctl(epollCr, EPOLL_CTL_ADD, servFd, &epollEvent);
     initData();
+    // signal handling
+    signal(SIGALRM, [](int){
+        endRound();
+        startRound();
+    });
     // main loop
     while(true){
         // waiting for events
@@ -172,12 +234,14 @@ int main(int argc, char ** argv) {
             std::string msg(buf, size);
             if (msg.rfind("LOGIN", 0) == 0){
                 if(handleLogin(msg.substr(6), cFd)){
-                    char ok[2] {'O', 'K'};
-                    send(cFd, ok, 2, 0);
+                    char ok[4] {'0', '2', 'O', 'K'};
+                    send(cFd, ok, 4, 0);
+                    points[cFd] = 0;
+                    playersNum++;
                 }
                 else {
-                    char no[2] {'N', 'O'};
-                    send(cFd, no, 2, 0);
+                    char no[4] {'0', '2','N', 'O'};
+                    send(cFd, no, 4, 0);
                 }
             }
             if (msg.rfind("ANS", 0) == 0){
@@ -185,13 +249,7 @@ int main(int argc, char ** argv) {
                 std::cout << answers[cFd] << std::endl;
             }
             if (msg == "ACTIVE:OK"){
-                activePlayers++;
-                if (activePlayers > 2 && activePlayers > playersNum/2){
-                    gameStarted = true;
-                    // start game
-                    currentCategory = rand() % 2;
-                    currentLetter = 'A' + rand() % 26;
-                }
+                handleActive(cFd);
             }
         }
     }
