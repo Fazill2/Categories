@@ -42,10 +42,11 @@ public class Main extends Connector {
     private static void sendAnswer(GameFrame gameFrame, Connector connector) {
         gameFrame.submitButton.addActionListener(e -> {
             try {
-                connector.send(gameFrame.textField.getText());
-                String response = connector.receive();
-                gameFrame.textField.setText(response);
-            } catch (IOException | InterruptedException ioException) {
+                String msg = "ANS:" + gameFrame.gameTextField.getText();
+                String length = msg.length() > 9 ? "" + msg.length() : "0" + msg.length();
+                msg = length + msg;
+                connector.send(msg);
+            } catch (IOException ioException) {
                 ioException.printStackTrace();
             }
         });

@@ -54,17 +54,9 @@ public class Connector {
     }
 
     private String receiveMessage() throws IOException {
-        StringBuilder responseBuilder = new StringBuilder();
-        int character;
-
-        while ((character = reader.read()) != -1) {
-            if (character == '\n') {
-                break;
-            }
-            responseBuilder.append((char) character);
-        }
-
-        return responseBuilder.toString();
+        byte[] buffer = new byte[1024];
+        int read = socket.getInputStream().read(buffer);
+        return new String(buffer, 0, read);
     }
 
     public void close() throws IOException {
