@@ -156,6 +156,7 @@ int main(int argc, char ** argv) {
         if (epollEvent.events & EPOLLIN && epollEvent.data.u64 != servFd){
 
             int cFd = (int) epollEvent.data.u64;
+            std::cout << "Received message from client " << cFd << std::endl;
             char sizeBuf[2] {};
             if (recv(cFd, sizeBuf, 2, MSG_WAITALL) != 2){
                 handleDisconnect((int) cFd);
@@ -171,12 +172,10 @@ int main(int argc, char ** argv) {
             if (msg.rfind("LOGIN", 0) == 0){
                 if(handleLogin(msg.substr(6), cFd)){
                     char ok[2] {'O', 'K'};
-                    msgQueue.push_back(std::make_pair(cFd, ok));
                     send(cFd, ok, 2, 0);
                 }
                 else {
                     char no[2] {'N', 'O'};
-                    msgQueue.push_back(std::make_pair(cFd, no));
                     send(cFd, no, 2, 0);
                 }
             }

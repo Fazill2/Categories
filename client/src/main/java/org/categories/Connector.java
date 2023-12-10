@@ -56,6 +56,9 @@ public class Connector {
     private String receiveMessage() throws IOException {
         byte[] buffer = new byte[1024];
         int read = socket.getInputStream().read(buffer);
+        if (read == -1) {
+            throw new IllegalStateException("Connection closed");
+        }
         return new String(buffer, 0, read);
     }
 
