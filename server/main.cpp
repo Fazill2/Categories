@@ -96,7 +96,7 @@ void assignPoints(){
     for (auto i = answers.begin(); i != answers.end(); i++){
         std::string ans = i->second;
         if (ans.rfind(currentLetter, 0) == 0 && ((!currentCategory && countries.count(ans)) || (currentCategory && cities.count(ans)))){
-            points[i->first] = 1;
+            points[i->first] += 1;
         }
     }
 }
@@ -236,6 +236,7 @@ int main(int argc, char ** argv) {
                 if(handleLogin(msg.substr(6), cFd)){
                     char ok[4] {'0', '2', 'O', 'K'};
                     send(cFd, ok, 4, 0);
+                    points[cFd] = 0;
                     playersNum++;
                 }
                 else {

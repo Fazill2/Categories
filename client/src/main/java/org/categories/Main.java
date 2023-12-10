@@ -73,7 +73,7 @@ public class Main {
             }
         });
     }
-    
+
     private static void loginActionListener(GameFrame gameFrame, Connector connector) {
         gameFrame.loginButton.addActionListener(e -> {
             try {
