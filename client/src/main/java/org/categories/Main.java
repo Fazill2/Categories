@@ -68,7 +68,7 @@ public class Main extends Connector {
                     gameFrame.validate();
                 } else {
                     System.out.println(response);
-                    gameFrame.textField.setText(response);
+                    gameFrame.loginTaken();
                 }
             } catch (IOException ioException) {
                 ioException.printStackTrace();
