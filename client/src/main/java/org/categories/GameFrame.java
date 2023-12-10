@@ -53,4 +53,8 @@ public class GameFrame extends JFrame {
     public void connectionError(){
         JOptionPane.showMessageDialog(null, "Connection error");
     }
+
+    public void loginTaken(){
+        JOptionPane.showMessageDialog(null, "Login taken. Please try again.");
+    }
 }
