@@ -29,7 +29,8 @@ std::map<int, std::string> players;
 std::map<int, int> points;
 // 
 std::map<int, std::string> answers;
-
+int maxRounds = 10;
+int currentRound = 0;
 bool gameStarted = false;
 bool roundStarted = false;
 int playersNum = 0;
@@ -98,6 +99,24 @@ void assignPoints(){
             points[i->first] = 1;
         }
     }
+}
+
+void startRound(){
+    roundStarted = true;
+    currentRound++;
+    currentLetter = 'A' + rand()%26;
+    currentCategory = rand()%2;
+    char msg[256] {};
+    sprintf(msg, "ROUND:%d:%c:%d", currentRound, currentLetter, currentCategory);
+    for (auto i = clientFds.begin(); i != clientFds.end(); i++){
+        msgQueue.push_back(std::make_pair(*i, std::string(msg)));
+    }
+    std::cout << msg << std::endl;
+}
+
+void startGame(){
+    gameStarted = true;
+    startRound();
 }
 
 int main(int argc, char ** argv) {
@@ -174,6 +193,7 @@ int main(int argc, char ** argv) {
                 if(handleLogin(msg.substr(6), cFd)){
                     char ok[2] {'O', 'K'};
                     send(cFd, ok, 2, 0);
+                    playersNum++;
                 }
                 else {
                     char no[2] {'N', 'O'};
@@ -189,8 +209,6 @@ int main(int argc, char ** argv) {
                 if (activePlayers > 2 && activePlayers > playersNum/2){
                     gameStarted = true;
                     // start game
-                    currentCategory = rand() % 2;
-                    currentLetter = 'A' + rand() % 26;
                 }
             }
         }
