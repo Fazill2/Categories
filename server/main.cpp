@@ -52,6 +52,7 @@ void handleDisconnect(int clientFd){
     answers.erase(clientFd);
     shutdown(clientFd, SHUT_RDWR);
     close(clientFd);
+    playersNum--;
 }
 
 // converts char arr into an int
