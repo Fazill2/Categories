@@ -1,26 +1,18 @@
 package org.categories;
 
-import javax.imageio.IIOException;
 import java.io.IOException;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
-public class Connector{
+public class Connector {
 
     Socket socket;
-    GameFrame gameFrame;
     Connector() {
     }
-    public void connect(String host, Integer port) throws UnknownHostException, IOException {
+    public void connect(String host, Integer port) {
         try {
             socket = new Socket(host, port);
-        } catch (UnknownHostException e) {
-            System.out.println("Unknown host");
-            throw e;
-        } catch (IOException e) {
-            System.out.println("IO Exception");
-            System.out.println(e.getMessage());
-            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
         }
     }
 

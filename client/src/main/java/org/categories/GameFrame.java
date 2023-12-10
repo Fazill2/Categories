@@ -1,16 +1,12 @@
 package org.categories;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.IOException;
-import java.util.Locale;
 
 public class GameFrame extends JFrame {
     JTextField textField;
     JTextField gameTextField;
     JButton submitButton = new JButton("Submit Answer");
-    JButton loginButton = new JButton("Submit Name");;
+    JButton loginButton = new JButton("Submit Name");
     JLabel basicLabel;
     JLabel categoryLabel;
     JLabel letterLabel;
