@@ -1,12 +1,12 @@
 package org.categories;
 
 import javax.swing.*;
+import java.io.IOException;
 import java.util.Properties;
 
 public class Main extends Connector {
     public static void main(String[] args) {
         Config config = new Config();
-
         Properties properties = config.readConfigFile("config.properties");
         String host = properties.getProperty("host", "localhost");
         int port = Integer.parseInt(properties.getProperty("port", "2100"));
@@ -45,8 +45,8 @@ public class Main extends Connector {
                 connector.send(gameFrame.textField.getText());
                 String response = connector.receive();
                 gameFrame.textField.setText(response);
-            } catch (Exception exception) {
-                throw new RuntimeException(exception);
+            } catch (IOException | InterruptedException ioException) {
+                ioException.printStackTrace();
             }
         });
     }
@@ -69,8 +69,10 @@ public class Main extends Connector {
                     System.out.println(response);
                     gameFrame.textField.setText(response);
                 }
-            } catch (Exception exception) {
-                throw new RuntimeException(exception);
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
             }
         });
     }
