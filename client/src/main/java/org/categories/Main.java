@@ -16,14 +16,18 @@ public class Main {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    connector.send(gameFrame.textField.getText());
-                    String response = connector.receive();
-                    if (response.trim().equals("OK")) {
-                        gameFrame.useGamePanel();
-                    } else {
-                        System.out.println(response);
-                        gameFrame.textField.setText(response);
-                    }
+                    String msg = "LOGIN:" + gameFrame.textField.getText();
+                    String length = msg.length() > 9 ? "" + msg.length() : "0" + msg.length();
+                    msg = length + msg;
+                    System.out.println(msg);
+                    connector.send(msg);
+//                    String response = connector.receive();
+//                    if (response.trim().equals("OK")) {
+//                        gameFrame.setContentPane(gameFrame.gamePanel);
+//                    } else {
+//                        System.out.println(response);
+//                        gameFrame.textField.setText(response);
+//                    }
                 } catch (IOException ioException) {
                     ioException.printStackTrace();
                 }
@@ -48,10 +52,7 @@ public class Main {
                     public void run() {
                         gameFrame.setVisible(true);
                         gameFrame.createLoginPanel();
-                        gameFrame.createGamePanel();
                         gameFrame.setContentPane(gameFrame.loginPanel);
-                        gameFrame.setContentPane(gameFrame.gamePanel);
-                        gameFrame.useLoginPanel();
                         while (true) {
                             try {
                                 connector.connect("localhost", 2100);

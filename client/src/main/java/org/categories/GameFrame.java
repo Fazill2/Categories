@@ -32,7 +32,6 @@ public class GameFrame extends JFrame {
         gamePanel.add(letterLabel);
         gamePanel.add(textField);
         gamePanel.add(submitButton);
-        this.add(gamePanel);
     }
 
     public void createLoginPanel() {
@@ -42,7 +41,6 @@ public class GameFrame extends JFrame {
         loginPanel.add(basicLabel);
         loginPanel.add(textField);
         loginPanel.add(loginButton);
-        this.add(loginPanel);
     }
 
     public void useGamePanel(){

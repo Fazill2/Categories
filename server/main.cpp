@@ -12,11 +12,32 @@
 #include <signal.h>
 #include <errno.h>
 #include <error.h>
+#include <map>
+#include <stdio.h>
+#include <iostream>
 
 int servFd;
 
 // client sockets
 std::unordered_set<int> clientFds;
+
+std::map<int, std::string> players;
+std::map<int, int> points;
+
+
+
+void handleDisconnect(int clientFd){
+    clientFds.erase(clientFd);
+    players.erase(clientFd);
+    points.erase(clientFd);
+    shutdown(clientFd, SHUT_RDWR);
+    close(clientFd);
+}
+
+int getNumFromBuf(char buf[2]){
+    int res = 10*((int) buf[0] - '0') + (buf[1]) - '0';
+    return res;
+}
 
 int main(int argc, char ** argv) {
     if(argc!=2){
@@ -61,18 +82,31 @@ int main(int argc, char ** argv) {
                 perror("accept failed");
                 return 1;
             }
-            printf("Connection from %s:%hu\n", inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
 
             clientFds.insert(clientFd);
-
-            auto currTime = std::time(nullptr);
-            char * text = std::ctime(&currTime);
-            int count = write(clientFd, text, strlen(text));
-            if(count != (int) strlen(text))
-                perror("write failed");
-            
-            shutdown(clientFd, SHUT_RDWR);
-            close(clientFd);
+            epollEvent.events = EPOLLIN;
+            epollEvent.data.u64 = clientFd;
+            epoll_ctl(epollCr, EPOLL_CTL_ADD, clientFd, &epollEvent);
+        }
+        if (epollEvent.events & EPOLLIN && epollEvent.data.u64 != servFd){
+            char sizeBuf[2] {};
+            if (recv(epollEvent.data.u64, sizeBuf, 2, MSG_WAITALL) != 2){
+                std::cout << epollEvent.data.u64 << std::endl;
+                handleDisconnect((int) epollEvent.data.u64);
+                continue;
+            }
+            int size = getNumFromBuf(sizeBuf);
+            std::cout << size << std::endl;
+            char buf[size] {};
+            if (recv(epollEvent.data.u64, buf, size, MSG_WAITALL) != size){
+                handleDisconnect((int) epollEvent.data.u64);
+                continue;
+            }
+            std::string msg(buf, size);
+            // here converting to string does not work bcs it appends random chars to the string
+            std::cout << msg << std::endl;
         }
     }
 }
+
+
