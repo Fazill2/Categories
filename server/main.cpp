@@ -39,6 +39,16 @@ int getNumFromBuf(char buf[2]){
     return res;
 }
 
+bool handleLogin(std::string login, int clientFd){
+    for (auto i = players.begin(); i != players.end(); i++){
+        if (i->second == login){
+            return false;
+        }
+    }
+    players[clientFd] = login;
+    return true;
+}
+
 int main(int argc, char ** argv) {
     if(argc!=2){
         printf("Usage: %s <port>\n", argv[0]);
@@ -89,22 +99,29 @@ int main(int argc, char ** argv) {
             epoll_ctl(epollCr, EPOLL_CTL_ADD, clientFd, &epollEvent);
         }
         if (epollEvent.events & EPOLLIN && epollEvent.data.u64 != servFd){
+            int cFd = (int) epollEvent.data.u64;
             char sizeBuf[2] {};
-            if (recv(epollEvent.data.u64, sizeBuf, 2, MSG_WAITALL) != 2){
-                std::cout << epollEvent.data.u64 << std::endl;
-                handleDisconnect((int) epollEvent.data.u64);
+            if (recv(cFd, sizeBuf, 2, MSG_WAITALL) != 2){
+                handleDisconnect((int) cFd);
                 continue;
             }
             int size = getNumFromBuf(sizeBuf);
-            std::cout << size << std::endl;
             char buf[size] {};
-            if (recv(epollEvent.data.u64, buf, size, MSG_WAITALL) != size){
-                handleDisconnect((int) epollEvent.data.u64);
+            if (recv(cFd, buf, size, MSG_WAITALL) != size){
+                handleDisconnect(cFd);
                 continue;
             }
             std::string msg(buf, size);
-            // here converting to string does not work bcs it appends random chars to the string
-            std::cout << msg << std::endl;
+            if (msg.rfind("LOGIN", 0) == 0){
+                if(handleLogin(msg.substr(6), cFd)){
+                    char ok[2] {'O', 'K'};
+                    send(cFd, ok, 2, 0);
+                }
+                else {
+                    char no[2] {'N', 'O'};
+                    send(cFd, no, 2, 0);
+                }
+            }
         }
     }
 }

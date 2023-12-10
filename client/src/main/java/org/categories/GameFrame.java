@@ -8,6 +8,7 @@ import java.util.Locale;
 
 public class GameFrame extends JFrame {
     JTextField textField;
+    JTextField gameTextField;
     JButton submitButton = new JButton("Submit Answer");
     JButton loginButton = new JButton("Submit Name");;
     JLabel basicLabel;
@@ -27,10 +28,10 @@ public class GameFrame extends JFrame {
         gamePanel = new JPanel();
         categoryLabel = new JLabel("Current category: ");
         letterLabel = new JLabel("Current letter: ");
-        textField = new JTextField("enter your answer", 26);
+        gameTextField = new JTextField("enter your answer", 26);
         gamePanel.add(categoryLabel);
         gamePanel.add(letterLabel);
-        gamePanel.add(textField);
+        gamePanel.add(gameTextField);
         gamePanel.add(submitButton);
     }
 

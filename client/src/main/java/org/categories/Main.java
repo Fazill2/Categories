@@ -21,13 +21,16 @@ public class Main {
                     msg = length + msg;
                     System.out.println(msg);
                     connector.send(msg);
-//                    String response = connector.receive();
-//                    if (response.trim().equals("OK")) {
-//                        gameFrame.setContentPane(gameFrame.gamePanel);
-//                    } else {
-//                        System.out.println(response);
-//                        gameFrame.textField.setText(response);
-//                    }
+                    String response = connector.receive();
+                    if (response.trim().equals("OK")) {
+                        System.out.println(response);
+                        gameFrame.createGamePanel();
+                        gameFrame.setContentPane(gameFrame.gamePanel);
+                        gameFrame.validate();
+                    } else {
+                        System.out.println(response);
+                        gameFrame.textField.setText(response);
+                    }
                 } catch (IOException ioException) {
                     ioException.printStackTrace();
                 }
