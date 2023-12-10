@@ -1,15 +1,12 @@
 package org.categories;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.IOException;
-import java.util.Locale;
 
 public class GameFrame extends JFrame {
     JTextField textField;
+    JTextField gameTextField;
     JButton submitButton = new JButton("Submit Answer");
-    JButton loginButton = new JButton("Submit Name");;
+    JButton loginButton = new JButton("Submit Name");
     JLabel basicLabel;
     JLabel categoryLabel;
     JLabel letterLabel;
@@ -27,10 +24,10 @@ public class GameFrame extends JFrame {
         gamePanel = new JPanel();
         categoryLabel = new JLabel("Current category: ");
         letterLabel = new JLabel("Current letter: ");
-        textField = new JTextField("enter your answer", 26);
+        gameTextField = new JTextField("enter your answer", 26);
         gamePanel.add(categoryLabel);
         gamePanel.add(letterLabel);
-        gamePanel.add(textField);
+        gamePanel.add(gameTextField);
         gamePanel.add(submitButton);
     }
 
@@ -55,5 +52,9 @@ public class GameFrame extends JFrame {
 
     public void connectionError(){
         JOptionPane.showMessageDialog(null, "Connection error");
+    }
+
+    public void loginTaken(){
+        JOptionPane.showMessageDialog(null, "Login taken. Please try again.");
     }
 }

@@ -1,69 +1,80 @@
 package org.categories;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.Properties;
 
-public class Main {
+public class Main extends Connector {
     public static void main(String[] args) {
-        // read ip and port from config file
+        Config config = new Config();
+        Properties properties = config.readConfigFile("config.properties");
+        String host = properties.getProperty("host", "localhost");
+        int port = Integer.parseInt(properties.getProperty("port", "2100"));
 
         Connector connector = new Connector();
         GameFrame gameFrame = new GameFrame(400, 400);
 
-        gameFrame.loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    String msg = "LOGIN:" + gameFrame.textField.getText();
-                    String length = msg.length() > 9 ? "" + msg.length() : "0" + msg.length();
-                    msg = length + msg;
-                    System.out.println(msg);
-                    connector.send(msg);
-//                    String response = connector.receive();
-//                    if (response.trim().equals("OK")) {
-//                        gameFrame.setContentPane(gameFrame.gamePanel);
-//                    } else {
-//                        System.out.println(response);
-//                        gameFrame.textField.setText(response);
-//                    }
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
-            }
-        });
+        login(gameFrame, connector);
+        sendAnswer(gameFrame, connector);
+        connectToLocalhost(gameFrame, connector, host, port);
+    }
 
-        gameFrame.submitButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    connector.send(gameFrame.textField.getText());
-                    String response = connector.receive();
-                    gameFrame.textField.setText(response);
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
-            }
-        });
+    private static void connectToLocalhost(GameFrame gameFrame, Connector connector, String host, int port) {
         SwingUtilities.invokeLater(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        gameFrame.setVisible(true);
-                        gameFrame.createLoginPanel();
-                        gameFrame.setContentPane(gameFrame.loginPanel);
-                        while (true) {
-                            try {
-                                connector.connect("localhost", 2100);
-                                // gameFrame.connectionSuccess();
-                                break;
-                            } catch (Exception e) {
-                                gameFrame.connectionError();
-                            }
+                () -> {
+                    gameFrame.setVisible(true);
+                    gameFrame.createLoginPanel();
+                    gameFrame.setContentPane(gameFrame.loginPanel);
+                    gameFrame.validate();
+                    while (true) {
+                        try {
+                            connector.connect(host, port);
+                            // gameFrame.connectionSuccess();
+                            break;
+                        } catch (Exception e) {
+                            gameFrame.connectionError();
                         }
                     }
                 }
         );
+    }
+
+    private static void sendAnswer(GameFrame gameFrame, Connector connector) {
+        gameFrame.submitButton.addActionListener(e -> {
+            try {
+                String msg = "ANS:" + gameFrame.gameTextField.getText();
+                String length = msg.length() > 9 ? "" + msg.length() : "0" + msg.length();
+                msg = length + msg;
+                connector.send(msg);
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+        });
+    }
+
+    private static void login(GameFrame gameFrame, Connector connector) {
+        gameFrame.loginButton.addActionListener(e -> {
+            try {
+                String msg = "LOGIN:" + gameFrame.textField.getText();
+                String length = msg.length() > 9 ? "" + msg.length() : "0" + msg.length();
+                msg = length + msg;
+                System.out.println(msg);
+                connector.send(msg);
+                String response = connector.receive();
+                if (response.trim().equals("OK")) {
+                    System.out.println(response);
+                    gameFrame.createGamePanel();
+                    gameFrame.setContentPane(gameFrame.gamePanel);
+                    gameFrame.validate();
+                } else {
+                    System.out.println(response);
+                    gameFrame.loginTaken();
+                }
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
     }
 }

@@ -1,26 +1,25 @@
-package org.categories;
-
-import javax.imageio.IIOException;
+package org.categories;// Connector.java
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
-public class Connector{
+public class Connector {
 
-    Socket socket;
-    GameFrame gameFrame;
-    Connector() {
+    private Socket socket;
+    private BufferedReader reader;
+    private String receivedMessage;
+
+    public Connector() {
     }
-    public void connect(String host, Integer port) throws UnknownHostException, IOException {
+
+    public void connect(String host, Integer port) {
         try {
             socket = new Socket(host, port);
-        } catch (UnknownHostException e) {
-            System.out.println("Unknown host");
-            throw e;
-        } catch (IOException e) {
-            System.out.println("IO Exception");
-            System.out.println(e.getMessage());
-            throw e;
+            reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            startReceivingThread();
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
         }
     }
 
@@ -28,9 +27,38 @@ public class Connector{
         socket.getOutputStream().write(message.getBytes());
     }
 
-    public String receive() throws IOException {
+    public synchronized String receive() throws IOException, InterruptedException {
+        while (receivedMessage == null) {
+            wait();
+        }
+        String message = receivedMessage;
+        receivedMessage = null;
+        return message;
+    }
+
+    private void startReceivingThread() {
+        Thread receiveThread = new Thread(() -> {
+            try {
+                while (true) {
+                    String response = receiveMessage();
+                    synchronized (Connector.this) {
+                        receivedMessage = response;
+                        notify();
+                    }
+                }
+            } catch (IOException e) {
+                throw new IllegalStateException("Issue with receiving messages",e);
+            }
+        });
+        receiveThread.start();
+    }
+
+    private String receiveMessage() throws IOException {
         byte[] buffer = new byte[1024];
         int read = socket.getInputStream().read(buffer);
+        if (read == -1) {
+            throw new IllegalStateException("Connection closed");
+        }
         return new String(buffer, 0, read);
     }
 
