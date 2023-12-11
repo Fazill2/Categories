@@ -17,20 +17,35 @@
 #include <iostream>
 #include <fstream>
 #include <deque>
+#include <algorithm>
+
+class Player {
+    public:int fd;
+    public: std::string login;
+    public: int points;
+    public: std::string answer;
+    public: double time;
+    public: bool active;
+
+    public: Player(){
+        fd = -1;
+        login = "";
+        points = 0;
+        answer = "";
+        time = 0;
+        active = false;
+    };
+};
 
 // TODO: change some functions from using list of fds to using list of players
 
 // global value for server file descriptor
 int servFd;
 
-// client sockets
-std::unordered_set<int> clientFds;
-// map containing pairs clientFd: <client-login>
-std::map<int, std::string> players;
-// map containing pairs clientFd: clientPoints
-std::map<int, int> points;
-// 
-std::map<int, std::string> answers;
+
+
+
+
 int maxRounds = 10;
 int currentRound = 0;
 bool gameStarted = false;
@@ -45,12 +60,12 @@ std::unordered_set<std::string> countries;
 // message queue for clients, contains messages to be sent and clientfd using vectors
 std::deque<std::pair<int, std::string>> msgQueue;
 
+
+std::map<int, Player> currentPlayers;
+
 // handles client disconnection
 void handleDisconnect(int clientFd){
-    clientFds.erase(clientFd);
-    players.erase(clientFd);
-    points.erase(clientFd);
-    answers.erase(clientFd);
+    currentPlayers.erase(clientFd);
     shutdown(clientFd, SHUT_RDWR);
     close(clientFd);
     playersNum--;
@@ -64,12 +79,12 @@ int getNumFromBuf(char buf[2]){
 
 // checks if login is in use, if not adds it to login map
 bool handleLogin(std::string login, int clientFd){
-    for (auto i = players.begin(); i != players.end(); i++){
-        if (i->second == login){
+    for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
+        if (i->second.login == login){
             return false;
         }
     }
-    players[clientFd] = login;
+    currentPlayers[clientFd].login = login;
     return true;
 }
 
@@ -93,17 +108,24 @@ void initData(){
 }
 
 void assignPoints(){
-    for (auto i = answers.begin(); i != answers.end(); i++){
-        std::string ans = i->second;
-        if (ans.rfind(currentLetter, 0) == 0 && ((!currentCategory && countries.count(ans)) || (currentCategory && cities.count(ans)))){
-            points[i->first] += 1;
+    for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
+        std::string ans = i->second.answer;
+        std::transform(ans.begin(), ans.end(), ans.begin(),[](unsigned char c){ return std::tolower(c); });
+       
+        std::cout << ans << " " << countries.count(ans) << std::endl;
+
+        char lower = tolower(currentLetter);
+        if (ans.rfind(lower, 0) == 0 && ((!currentCategory && countries.count(ans)) || (currentCategory && cities.count(ans)))){
+            currentPlayers[i->first].points += 1;
         }
     }
 }
 
 void endGame(){
-    for (auto i = clientFds.begin(); i != clientFds.end(); i++){
-        send(*i, "07ENDGAME", 9, 0);
+
+    for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
+        std::cout << i->first << " " << i->second.points << std::endl;
+        currentPlayers[i->first].active = false;
     }
     shutdown(servFd, SHUT_RDWR);
     close(servFd);
@@ -115,16 +137,15 @@ void endRound(){
     char msg[256] {};
     const char* msgLen = (currentRound < 10) ? "05" : "06";
     sprintf(msg, "%sEND:%d", msgLen, currentRound);
-    for (auto i = clientFds.begin(); i != clientFds.end(); i++){
-        send(*i, msg, strlen(msg), 0);
+    for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
+        send(i->second.fd, msg, strlen(msg), 0);
     }
     if (currentRound == maxRounds){
         endGame();
     }
-    for (auto i = points.begin(); i != points.end(); i++){
-        std::cout << i->first << " " << i->second << std::endl;
+    for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
+        std::cout << i->first << " " << i->second.points << std::endl;
     }
-
 }
 
 void startRound(){
@@ -135,8 +156,10 @@ void startRound(){
     char msg[256] {};
     int msgLen = (currentRound < 10) ? 11 : 12;
     sprintf(msg, "%dROUND:%d:%c:%d", msgLen, currentRound, currentLetter, currentCategory);
-    for (auto i = clientFds.begin(); i != clientFds.end(); i++){
-        send(*i, msg, strlen(msg), 0);
+    for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
+        i->second.answer = "";
+        i->second.time = 0;
+        send(i->second.fd, msg, strlen(msg), 0);
     }
     alarm(15);
     std::cout << msg << std::endl;
@@ -148,6 +171,10 @@ void startGame(){
 }
 
 int handleActive(int clientFd){
+    if (currentPlayers[clientFd].active){
+        return 0;
+    }
+    currentPlayers[clientFd].active = true;
     activePlayers++;
     if (gameStarted){
         send(clientFd, "04WAIT", 6, 0);
@@ -208,35 +235,39 @@ int main(int argc, char ** argv) {
                 perror("accept failed");
                 return 1;
             }
-            // adding new client to set of clients
-            clientFds.insert(clientFd);
+            Player p = Player();
+            p.fd = clientFd;
+            currentPlayers[clientFd] = p;
             // adding new client to epoll
             epollEvent.events = EPOLLIN;
             epollEvent.data.u64 = clientFd;
             epoll_ctl(epollCr, EPOLL_CTL_ADD, clientFd, &epollEvent);
         }
         // if we have a message from client
-        if (epollEvent.events & EPOLLIN && epollEvent.data.u64 != servFd){
+        else if (epollEvent.events & EPOLLIN && epollEvent.data.u64 != servFd){
 
             int cFd = (int) epollEvent.data.u64;
             std::cout << "Received message from client " << cFd << std::endl;
+            std::cout << "Current players: " << currentPlayers[cFd].login << std::endl;
             char sizeBuf[2] {};
             if (recv(cFd, sizeBuf, 2, MSG_WAITALL) != 2){
                 handleDisconnect((int) cFd);
                 continue;
             }
             int size = getNumFromBuf(sizeBuf);
+            std::cout << size << std::endl;
             char buf[size] {};
             if (recv(cFd, buf, size, MSG_WAITALL) != size){
                 handleDisconnect(cFd);
                 continue;
             }
             std::string msg(buf, size);
+            std::cout << msg << std::endl;
             if (msg.rfind("LOGIN", 0) == 0){
                 if(handleLogin(msg.substr(6), cFd)){
                     char ok[4] {'0', '2', 'O', 'K'};
                     send(cFd, ok, 4, 0);
-                    points[cFd] = 0;
+
                     playersNum++;
                 }
                 else {
@@ -245,8 +276,8 @@ int main(int argc, char ** argv) {
                 }
             }
             if (msg.rfind("ANS", 0) == 0){
-                answers[cFd] = msg.substr(4);
-                std::cout << answers[cFd] << std::endl;
+                currentPlayers[cFd].answer = msg.substr(4);
+                std::cout << currentPlayers[cFd].answer << std::endl;
             }
             if (msg == "ACTIVE:OK"){
                 handleActive(cFd);

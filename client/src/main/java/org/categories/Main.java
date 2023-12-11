@@ -90,12 +90,6 @@ public class Main {
             try {
                 String msg = "ACTIVE:OK";
                 connector.send(msg);
-
-                if (proceedDirectlyToResults){
-
-                } else if (proceedDirectlyToGame){
-
-                }
             } catch (IOException ex) {
                 gameFrame.error(ex.getMessage());
             }
