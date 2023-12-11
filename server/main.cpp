@@ -102,6 +102,7 @@ void initData(){
     if (file2.is_open()) {
         while (getline(file2, line)) {
             countries.insert(line);
+
         }
         file2.close();
     }
