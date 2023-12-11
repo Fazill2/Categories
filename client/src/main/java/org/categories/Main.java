@@ -1,17 +1,14 @@
 package org.categories;
 
 import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.Properties;
 
 public class Main {
-    static boolean proceedDirectlyToResults = true;
-    static boolean proceedDirectlyToGame = true;
-
     static int round;
     public static Connector connector = new Connector();
-
-    static String login;
 
     static GameFrame gameFrame = new GameFrame(500,500);
 
@@ -25,7 +22,6 @@ public class Main {
         loginActionListener(gameFrame, connector);
         sendAnswerActionListener(gameFrame, connector);
         lobbyReadyActionListener(gameFrame, connector);
-
         closeWindowListener(gameFrame);
     }
 
@@ -142,9 +138,33 @@ public class Main {
             gameFrame.letterLabel.setText("Current letter: " + msg[2]);
             String category = (Integer.parseInt(msg[3]) == 0) ? "Countries" : "Cities";
             gameFrame.categoryLabel.setText("Current category: " + category);
+
+            timer();
+
             gameFrame.setContentPane(gameFrame.gamePanel);
             gameFrame.validate();
         }
 
+    }
+
+    private static void timer() {
+        int initialTime = 14;
+        int countdownInterval = 1000;
+
+        Timer countdownTimer = new Timer(countdownInterval, new ActionListener() {
+            int timeLeft = initialTime;
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                gameFrame.timer.setValue(timeLeft);
+                if (timeLeft == 1) {
+                    ((Timer) e.getSource()).stop();
+                } else {
+                    timeLeft--;
+                }
+            }
+        });
+
+        countdownTimer.start();
     }
 }

@@ -25,6 +25,8 @@ public class GameFrame extends JFrame {
     JPanel lobbyPanel;
     JPanel resultsPanel;
 
+    JProgressBar timer;
+
     JTable resultsTable;
 
     public GameFrame(int width, int height){
@@ -39,11 +41,14 @@ public class GameFrame extends JFrame {
         gamePanel = new JPanel();
         categoryLabel = new JLabel("Current category: ");
         letterLabel = new JLabel("Current letter: ");
-        gameTextField = new JTextField("enter your answer", 26);
+        gameTextField = new JTextField(26);
+        timer = new JProgressBar(0,15);
+        timer.setValue(15);
         gamePanel.add(categoryLabel);
         gamePanel.add(letterLabel);
         gamePanel.add(gameTextField);
         gamePanel.add(submitButton);
+        gamePanel.add(timer);
     }
 
     public void createLoginPanel() {
