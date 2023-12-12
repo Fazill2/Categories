@@ -34,6 +34,8 @@ public class Main {
                         JOptionPane.YES_NO_OPTION,
                         JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
                     System.exit(0);
+                } else {
+                    gameFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
                 }
             }
         });
@@ -138,11 +140,12 @@ public class Main {
             gameFrame.letterLabel.setText("Current letter: " + msg[2]);
             String category = (Integer.parseInt(msg[3]) == 0) ? "Countries" : "Cities";
             gameFrame.categoryLabel.setText("Current category: " + category);
-
             timer();
-
             gameFrame.setContentPane(gameFrame.gamePanel);
             gameFrame.validate();
+        } else if (response.startsWith("FPOINTS")){
+            String [] msg = response.split(":");
+            gameFrame.model.insertRow(gameFrame.model.getRowCount(), new Object[]{msg[1], msg[2]});
         }
 
     }

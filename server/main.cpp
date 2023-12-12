@@ -59,9 +59,11 @@ std::unordered_set<std::string> countries;
 
 // message queue for clients, contains messages to be sent and clientfd using vectors
 std::deque<std::pair<int, std::string>> msgQueue;
-
+std::map<std::string, int> answers;
 
 std::map<int, Player> currentPlayers;
+
+void endGame();
 
 // handles client disconnection
 void handleDisconnect(int clientFd){
@@ -69,6 +71,10 @@ void handleDisconnect(int clientFd){
     shutdown(clientFd, SHUT_RDWR);
     close(clientFd);
     playersNum--;
+    activePlayers--;
+    if (gameStarted && playersNum < 2){
+        endGame();
+    }
 }
 
 // converts char arr into an int
@@ -114,10 +120,18 @@ void assignPoints(){
         std::transform(ans.begin(), ans.end(), ans.begin(),[](unsigned char c){ return std::tolower(c); });
        
         std::cout << ans << " " << countries.count(ans) << std::endl;
-
+        answers.clear();
+        int sumAnswers = 0;
+        for (auto j = currentPlayers.begin(); j != currentPlayers.end(); j++){
+            if (answers.count(j->second.answer) == 0){
+                answers[j->second.answer] = 0;
+            }
+            answers[j->second.answer]++;
+            sumAnswers++;
+        }
         char lower = tolower(currentLetter);
         if (ans.rfind(lower, 0) == 0 && ((!currentCategory && countries.count(ans)) || (currentCategory && cities.count(ans)))){
-            currentPlayers[i->first].points += 1;
+            currentPlayers[i->first].points += (5 + 5*(sumAnswers- answers[ans]+1)/sumAnswers);
         }
     }
 }
@@ -127,6 +141,21 @@ void endGame(){
     for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
         std::cout << i->first << " " << i->second.points << std::endl;
         currentPlayers[i->first].active = false;
+    }
+    for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
+        send(i->second.fd, "07ENDGAME", 9, 0);
+    }
+    for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
+        for (auto j = currentPlayers.begin(); j != currentPlayers.end(); j++){
+           char msg[128] {};
+            // send message to each client with each players points as "<size>FPOINTS:<login>:<points>"
+            sprintf(msg, "FPOINTS:%s:%d", j->second.login.c_str(), j->second.points);
+            char finalMsg[256]{};
+            sprintf(finalMsg, "%d%s", (int) strlen(msg), msg);
+            send(i->second.fd, finalMsg, strlen(finalMsg), 0);
+        }
+        shutdown(i->second.fd, SHUT_RDWR);
+        close(i->second.fd);
     }
     shutdown(servFd, SHUT_RDWR);
     close(servFd);
@@ -160,7 +189,9 @@ void startRound(){
     for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
         i->second.answer = "";
         i->second.time = 0;
-        send(i->second.fd, msg, strlen(msg), 0);
+        if (i->second.active){
+            send(i->second.fd, msg, strlen(msg), 0);
+        }
     }
     alarm(15);
     std::cout << msg << std::endl;
@@ -186,6 +217,7 @@ int handleActive(int clientFd){
 }
 
 int main(int argc, char ** argv) {
+    srand(time(NULL));
     if(argc!=2){
         printf("Usage: %s <port>\n", argv[0]);
         return 1;

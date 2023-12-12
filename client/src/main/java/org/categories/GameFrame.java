@@ -1,13 +1,14 @@
 package org.categories;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 
 public class GameFrame extends JFrame {
     String username;
 
     JTextField textField;
     JTextField gameTextField;
-
+    JLabel pointsLabel = new JLabel("Points: 0");
     JButton submitButton = new JButton("Submit Answer");
     JButton loginButton = new JButton("Submit Name");
     JButton lobbyReadyButton = new JButton("Yes");
@@ -28,6 +29,7 @@ public class GameFrame extends JFrame {
     JProgressBar timer;
 
     JTable resultsTable;
+    DefaultTableModel model;
 
     public GameFrame(int width, int height){
         super("Categories");
@@ -81,19 +83,14 @@ public class GameFrame extends JFrame {
         resultsPanel = new JPanel();
 
         String[][] data = {
-                { "1", "Janir", "2137" },
-                { "2", "Faziil", "213" },
-                { "3", "JuanPabloII", "21" },
-                { "4", "Juan Pablo III", "2" }
         };
 
         // Column Names
-        String[] columnNames = { "Position", "Username", "Points" };
-
+        String[] columnNames = {"Username", "Points" };
+        model = new DefaultTableModel(data, columnNames);
         // Initializing the JTable
-        resultsTable = new JTable(data, columnNames);
+        resultsTable = new JTable(model);
         resultsTable.setBounds(0, 0, 30, 20);
-
         // adding it to JScrollPane
         JScrollPane sp = new JScrollPane(resultsTable);
         resultsPanel.add(sp);
