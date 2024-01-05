@@ -2,6 +2,7 @@ package org.categories;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
 public class Connector {
 
@@ -30,12 +31,15 @@ public class Connector {
         byte[] lengthBuffer = new byte[2];
         int read = socket.getInputStream().read(lengthBuffer, 0, 2);
         if (read == -1) {
+            System.out.println("read: " + read + " length: " + -1);
             throw new IllegalStateException("Connection closed");
         }
         int length = Integer.parseInt(new String(lengthBuffer));
         byte[] buffer = new byte[length];
         read = socket.getInputStream().read(buffer, 0, length);
+        System.out.println(new String(buffer, 0, read));
         if (read != length) {
+            System.out.println("read: " + read + " length: " + length);
             throw new IllegalStateException("Connection closed");
         }
         return new String(buffer, 0, read);

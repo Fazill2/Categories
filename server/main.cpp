@@ -18,9 +18,10 @@
 #include <fstream>
 #include <deque>
 #include <algorithm>
+#include <sys/signalfd.h>
 
 class Player {
-    public:int fd;
+    public: int fd;
     public: std::string login;
     public: int points;
     public: std::string answer;
@@ -37,18 +38,23 @@ class Player {
     };
 };
 
+struct Message {
+    int size;
+    int expectedSize;
+    std::string msg;
+    bool isSize; // true if we are reading size, false if we are reading message
+};
+
 // TODO: change some functions from using list of fds to using list of players
 
 // global value for server file descriptor
 int servFd;
 
 
-
-
-
 int maxRounds = 10;
 int currentRound = 0;
 bool gameStarted = false;
+bool gameEnded = false;
 bool roundStarted = false;
 int playersNum = 0;
 int activePlayers = 0;
@@ -60,6 +66,7 @@ std::unordered_set<std::string> countries;
 // message queue for clients, contains messages to be sent and clientfd using vectors
 std::deque<std::pair<int, std::string>> msgQueue;
 std::map<std::string, int> answers;
+std::map<int, Message> currentMessages;
 
 std::map<int, Player> currentPlayers;
 
@@ -67,7 +74,9 @@ void endGame();
 
 // handles client disconnection
 void handleDisconnect(int clientFd){
+    std::cout << "disconnecting" << std::endl;
     currentPlayers.erase(clientFd);
+    currentMessages.erase(clientFd);
     shutdown(clientFd, SHUT_RDWR);
     close(clientFd);
     playersNum--;
@@ -115,6 +124,7 @@ void initData(){
 }
 
 void assignPoints(){
+    std::cout << "assigning points" << std::endl;
     for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
         std::string ans = i->second.answer;
         std::transform(ans.begin(), ans.end(), ans.begin(),[](unsigned char c){ return std::tolower(c); });
@@ -137,11 +147,8 @@ void assignPoints(){
 }
 
 void endGame(){
-
-    for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
-        std::cout << i->first << " " << i->second.points << std::endl;
-        currentPlayers[i->first].active = false;
-    }
+    std::cout << "ending game" << std::endl;
+    
     for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
         send(i->second.fd, "07ENDGAME", 9, 0);
     }
@@ -154,15 +161,22 @@ void endGame(){
             sprintf(finalMsg, "%d%s", (int) strlen(msg), msg);
             send(i->second.fd, finalMsg, strlen(finalMsg), 0);
         }
-        shutdown(i->second.fd, SHUT_RDWR);
-        close(i->second.fd);
     }
-    shutdown(servFd, SHUT_RDWR);
-    close(servFd);
-    exit(0);
+    for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
+        std::cout << i->first << " " << i->second.points << std::endl;
+        i->second.active = false;
+        i->second.answer = "";
+        i->second.points = 0;
+        i->second.time = 0;
+    }
+    gameStarted = false;
+    gameEnded = true;
+    activePlayers = 0;
+    alarm(15);
 }
 
 void endRound(){
+    std::cout << "ending round" << std::endl;
     assignPoints();
     char msg[256] {};
     const char* msgLen = (currentRound < 10) ? "05" : "06";
@@ -179,6 +193,7 @@ void endRound(){
 }
 
 void startRound(){
+    std::cout << "starting round" << std::endl;
     roundStarted = true;
     currentRound++;
     currentLetter = 'A' + rand()%26;
@@ -198,6 +213,7 @@ void startRound(){
 }
 
 void startGame(){
+    std::cout << "starting game" << std::endl;
     gameStarted = true;
     startRound();
 }
@@ -215,6 +231,7 @@ int handleActive(int clientFd){
     }
     return 0;
 }
+
 
 int main(int argc, char ** argv) {
     srand(time(NULL));
@@ -250,10 +267,16 @@ int main(int argc, char ** argv) {
     epoll_ctl(epollCr, EPOLL_CTL_ADD, servFd, &epollEvent);
     initData();
     // signal handling
-    signal(SIGALRM, [](int){
-        endRound();
-        startRound();
-    });
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGALRM);
+    if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1)
+        error(1, errno, "blocking failed");
+
+    int sigFd = signalfd(-1, &mask, 0);
+    epollEvent.events = EPOLLIN;
+    epollEvent.data.u64 = sigFd;
+    epoll_ctl(epollCr, EPOLL_CTL_ADD, sigFd, &epollEvent);
     // main loop
     while(true){
         // waiting for events
@@ -275,26 +298,113 @@ int main(int argc, char ** argv) {
             epollEvent.events = EPOLLIN;
             epollEvent.data.u64 = clientFd;
             epoll_ctl(epollCr, EPOLL_CTL_ADD, clientFd, &epollEvent);
+        } else if (epollEvent.data.u64 == sigFd){
+            struct signalfd_siginfo sfd_si;
+            if (read(sigFd, &sfd_si, sizeof(sfd_si)) == -1)
+                error(1, errno, "Error reading signal");
+            if (gameStarted){
+                endRound();
+                if (!gameEnded){
+                    startRound();
+                }
+            } else {
+                for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
+                    if (!i->second.active){
+                        char msg[] = "07RESTART";
+                        send(i->second.fd, msg, strlen(msg), 0);
+                    }
+                }
+                gameEnded = false;
+            }
         }
         // if we have a message from client
-        else if (epollEvent.events & EPOLLIN && epollEvent.data.u64 != servFd){
+        else if (epollEvent.events & EPOLLIN && epollEvent.data.u64 != servFd && epollEvent.data.u64 != sigFd){
 
             int cFd = (int) epollEvent.data.u64;
             std::cout << "Received message from client " << cFd << std::endl;
-            std::cout << "Current players: " << currentPlayers[cFd].login << std::endl;
-            char sizeBuf[2] {};
-            if (recv(cFd, sizeBuf, 2, MSG_WAITALL) != 2){
-                handleDisconnect((int) cFd);
-                continue;
+            std::string msg;
+            if (currentMessages.count(cFd) == 1){
+                if (currentMessages[cFd].isSize == true){
+                    std::cout << "incomplete size" << std::endl;
+                    int remainingSize = currentMessages[cFd].expectedSize-currentMessages[cFd].size;
+                    char sizeBuf[remainingSize] {};
+                    int rcvSize = recv(cFd, sizeBuf, remainingSize, MSG_DONTWAIT);
+                    if (rcvSize <= 0){
+                        handleDisconnect((int) cFd);
+                        continue;
+                    } else if (rcvSize != remainingSize){
+                        currentMessages[cFd].size += rcvSize;
+                        currentMessages[cFd].msg += std::string(sizeBuf, rcvSize);
+                        continue;
+                    }
+                    int size = std::stoi(currentMessages[cFd].msg + std::string(sizeBuf, rcvSize));
+                    currentMessages.erase(cFd);
+                    char buf[size] {};
+                    rcvSize = recv(cFd, buf, size, MSG_DONTWAIT);
+                    if (rcvSize <= 0){
+                        handleDisconnect((int) cFd);
+                        continue;
+                    } else if (rcvSize != size){
+                        Message msg = Message();
+                        msg.expectedSize = size;
+                        msg.size = rcvSize;
+                        msg.msg = std::string(buf, rcvSize);
+                        msg.isSize = false;
+                        currentMessages[cFd] = msg;
+                        continue;
+                    }
+                    msg = std::string(buf, size);
+                } else{
+                    std::cout << "incomplete msg" << std::endl;
+                    int remainingSize = currentMessages[cFd].expectedSize-currentMessages[cFd].size;
+                    char buf[remainingSize] {};
+                    int rcvSize = recv(cFd, buf, remainingSize, MSG_DONTWAIT);
+                    if (rcvSize <= 0){
+                        handleDisconnect((int) cFd);
+                        continue;
+                    } else if (rcvSize != remainingSize){
+                        currentMessages[cFd].size += rcvSize;
+                        currentMessages[cFd].msg += std::string(buf, rcvSize);
+                        continue;
+                    }
+                    msg = currentMessages[cFd].msg + std::string(buf, rcvSize);
+                    currentMessages.erase(cFd);
+                }
+            } else{
+                std::cout << "new msg" << std::endl;
+                char sizeBuf[2] {};
+                int rcvSize = recv(cFd, sizeBuf, 2, MSG_DONTWAIT);
+                if (rcvSize <= 0){
+                    handleDisconnect((int) cFd);
+                    continue;
+                } else if (rcvSize < 2){
+                    Message msg = Message();
+                    msg.expectedSize = 2;
+                    msg.size = rcvSize;
+                    msg.msg = std::string(sizeBuf, rcvSize);
+                    msg.isSize = true;
+                    currentMessages[cFd] = msg;
+                    continue;
+                }
+                std::cout << "new msg" << std::endl;
+                int size = getNumFromBuf(sizeBuf);
+                std::cout << size << std::endl;
+                char buf[size] {};
+                rcvSize = recv(cFd, buf, size, MSG_DONTWAIT);
+                if (rcvSize <= 0){
+                    handleDisconnect((int) cFd);
+                    continue;
+                } else if (rcvSize < size){
+                    Message msg = Message();
+                    msg.expectedSize = size;
+                    msg.size = rcvSize;
+                    msg.msg = std::string(sizeBuf, rcvSize);
+                    msg.isSize = false;
+                    currentMessages[cFd] = msg;
+                    continue;
+                }
+                msg = std::string(buf, rcvSize);
             }
-            int size = getNumFromBuf(sizeBuf);
-            std::cout << size << std::endl;
-            char buf[size] {};
-            if (recv(cFd, buf, size, MSG_WAITALL) != size){
-                handleDisconnect(cFd);
-                continue;
-            }
-            std::string msg(buf, size);
             std::cout << msg << std::endl;
             if (msg.rfind("LOGIN", 0) == 0){
                 if(handleLogin(msg.substr(6), cFd)){

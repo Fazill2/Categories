@@ -118,12 +118,10 @@ public class Main {
 
     private static void handleResponse(String response){
         if (response.equals("OK")){
-            System.out.println(response);
             gameFrame.createLobbyPanel(getText(gameFrame));
             gameFrame.setContentPane(gameFrame.lobbyPanel);
             gameFrame.validate();
         } else if (response.equals("NO")) {
-            System.out.println(response);
             gameFrame.error("Login was taken");
         } else if (response.equals("WAIT")){
             gameFrame.createWaitingPanel();
@@ -140,12 +138,22 @@ public class Main {
             gameFrame.letterLabel.setText("Current letter: " + msg[2]);
             String category = (Integer.parseInt(msg[3]) == 0) ? "Countries" : "Cities";
             gameFrame.categoryLabel.setText("Current category: " + category);
-            timer();
+            // timer();
             gameFrame.setContentPane(gameFrame.gamePanel);
             gameFrame.validate();
         } else if (response.startsWith("FPOINTS")){
             String [] msg = response.split(":");
             gameFrame.model.insertRow(gameFrame.model.getRowCount(), new Object[]{msg[1], msg[2]});
+        } else if (response.equals("RESTART")) {
+            if (gameFrame.username != null){
+                gameFrame.createLobbyPanel(gameFrame.username);
+                gameFrame.setContentPane(gameFrame.lobbyPanel);
+                gameFrame.validate();
+            } else {
+                gameFrame.createLoginPanel();
+                gameFrame.setContentPane(gameFrame.loginPanel);
+                gameFrame.validate();
+            }
         }
 
     }
