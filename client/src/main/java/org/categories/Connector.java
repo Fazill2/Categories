@@ -21,6 +21,7 @@ public class Connector {
     }
 
     public void send(String msg) throws IOException {
+        msg = msg.replaceAll("[^\\x00-\\x7F]", "");
         String length = msg.length() > 9 ? "" + msg.length() : "0" + msg.length();
         msg = length + msg;
         System.out.println(msg);

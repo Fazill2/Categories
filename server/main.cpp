@@ -63,11 +63,8 @@ char currentLetter = 'A';
 std::unordered_set<std::string> cities;
 std::unordered_set<std::string> countries;
 
-// message queue for clients, contains messages to be sent and clientfd using vectors
-std::deque<std::pair<int, std::string>> msgQueue;
 std::map<std::string, int> answers;
 std::map<int, Message> currentMessages;
-
 std::map<int, Player> currentPlayers;
 
 void endGame();
@@ -172,6 +169,7 @@ void endGame(){
     gameStarted = false;
     gameEnded = true;
     activePlayers = 0;
+    currentRound = 0;
     alarm(15);
 }
 
@@ -184,7 +182,7 @@ void endRound(){
     for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
         send(i->second.fd, msg, strlen(msg), 0);
     }
-    if (currentRound == maxRounds){
+    if (currentRound + 1 == maxRounds){
         endGame();
     }
     for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
