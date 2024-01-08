@@ -19,6 +19,7 @@
 #include <deque>
 #include <algorithm>
 #include <sys/signalfd.h>
+#include <sstream>
 
 class Player {
     public: int fd;
@@ -50,8 +51,18 @@ struct Message {
 // global value for server file descriptor
 int servFd;
 
+int uniqueAnswer;
+int notUniqueAnswer;
 
-int maxRounds = 10;
+int firstThresholdPoints;
+int secondThresholdPoints;
+
+int firstThresholdTime;
+int secondThresholdTime;
+
+int roundTime;
+int maxRounds;
+
 int currentRound = 0;
 bool gameStarted = false;
 bool gameEnded = false;
@@ -65,6 +76,47 @@ std::unordered_set<std::string> countries;
 
 std::map<std::string, int> answers;
 std::map<int, Message> currentMessages;
+
+
+int readConfigValue(const std::string& filename, const std::string& key) {
+    // Open the config.properties file
+    std::ifstream configFile(filename);
+
+    // Check if the file is opened successfully
+    if (!configFile.is_open()) {
+        std::cerr << "Error opening " << filename << " file." << std::endl;
+        return -1;  // Return a default or error value
+    }
+
+    // Variables to store the configuration values
+    std::string line;
+    int value = -1;  // Default value if not found
+
+    // Read each line from the file
+    while (std::getline(configFile, line)) {
+        // Use a stringstream to parse each line
+        std::istringstream iss(line);
+
+        // Extract key and value from the line
+        std::string currentKey, stringValue;
+        if (std::getline(iss, currentKey, '=') && std::getline(iss, stringValue)) {
+            // Check if the currentKey matches the specified key
+            if (currentKey == key) {
+                value = std::stoi(stringValue);
+                break;  // No need to continue reading the file
+            }
+        }
+    }
+
+    // Close the file
+    configFile.close();
+
+    std::cout << key << ":" << value << std::endl;
+
+    return value;
+}
+
+
 std::map<int, Player> currentPlayers;
 
 void endGame();
@@ -73,7 +125,6 @@ void endGame();
 void handleDisconnect(int clientFd){
     std::cout << "disconnecting" << std::endl;
     currentPlayers.erase(clientFd);
-    currentMessages.erase(clientFd);
     shutdown(clientFd, SHUT_RDWR);
     close(clientFd);
     playersNum--;
@@ -106,6 +157,7 @@ void initData(){
     std::ifstream file1("cities.txt");
     if (file1.is_open()) {
         while (getline(file1, line)) {
+            line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
             cities.insert(line);
         }
         file1.close();
@@ -113,8 +165,8 @@ void initData(){
     std::ifstream file2("countries.txt");
     if (file2.is_open()) {
         while (getline(file2, line)) {
+            line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
             countries.insert(line);
-
         }
         file2.close();
     }
@@ -125,7 +177,7 @@ void assignPoints(){
     for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
         std::string ans = i->second.answer;
         std::transform(ans.begin(), ans.end(), ans.begin(),[](unsigned char c){ return std::tolower(c); });
-       
+
         std::cout << ans << " " << countries.count(ans) << std::endl;
         answers.clear();
         int sumAnswers = 0;
@@ -138,7 +190,7 @@ void assignPoints(){
         }
         char lower = tolower(currentLetter);
         if (ans.rfind(lower, 0) == 0 && ((!currentCategory && countries.count(ans)) || (currentCategory && cities.count(ans)))){
-            currentPlayers[i->first].points += (5 + 5*(sumAnswers- answers[ans]+1)/sumAnswers);
+            currentPlayers[i->first].points += 2;
         }
     }
 }
@@ -232,11 +284,20 @@ int handleActive(int clientFd){
 
 
 int main(int argc, char ** argv) {
-    srand(time(NULL));
     if(argc!=2){
         printf("Usage: %s <port>\n", argv[0]);
         return 1;
     }
+    std::string filename = "../config.properties";
+    maxRounds = readConfigValue(filename,"rounds");
+    roundTime = readConfigValue(filename, "roundTime");
+    uniqueAnswer = readConfigValue(filename, "uniqueAnswer");
+    notUniqueAnswer = readConfigValue(filename, "notUniqueAnswer");
+    firstThresholdTime = readConfigValue(filename, "firstThresholdTime");
+    secondThresholdTime = readConfigValue(filename, "secondThresholdTime");
+    firstThresholdPoints = readConfigValue(filename, "firstThresholdPoints");
+    secondThresholdPoints = readConfigValue(filename, "secondThresholdPoints");
+
     char * endp;
     long port = strtol(argv[1], &endp, 10);
     if(*endp || port > 65535 || port < 1){
