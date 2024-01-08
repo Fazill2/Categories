@@ -190,7 +190,9 @@ void assignPoints(){
         }
         char lower = tolower(currentLetter);
         if (ans.rfind(lower, 0) == 0 && ((!currentCategory && countries.count(ans)) || (currentCategory && cities.count(ans)))){
-            currentPlayers[i->first].points += 2;
+            // TODO : Premiowanie unikalnych odpowiedzi ( zmienne wyżej )
+            // TODO : Premiowanie czasu ( globalne zmienne wyżej )
+            currentPlayers[i->first].points += uniqueAnswer;
         }
     }
 }
