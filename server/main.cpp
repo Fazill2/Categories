@@ -20,13 +20,15 @@
 #include <algorithm>
 #include <sys/signalfd.h>
 #include <sstream>
+#include <time.h>
+
 
 class Player {
     public: int fd;
     public: std::string login;
     public: int points;
     public: std::string answer;
-    public: double time;
+    public: time_t time;
     public: bool active;
 
     public: Player(){
@@ -71,6 +73,8 @@ int playersNum = 0;
 int activePlayers = 0;
 bool currentCategory = 0; // 0 - countries, 1 - cities
 char currentLetter = 'A';
+time_t questionTime;
+
 std::unordered_set<std::string> cities;
 std::unordered_set<std::string> countries;
 
@@ -125,6 +129,7 @@ void endGame();
 void handleDisconnect(int clientFd){
     std::cout << "disconnecting" << std::endl;
     currentPlayers.erase(clientFd);
+    currentMessages.erase(clientFd);
     shutdown(clientFd, SHUT_RDWR);
     close(clientFd);
     playersNum--;
@@ -180,19 +185,31 @@ void assignPoints(){
 
         std::cout << ans << " " << countries.count(ans) << std::endl;
         answers.clear();
-        int sumAnswers = 0;
         for (auto j = currentPlayers.begin(); j != currentPlayers.end(); j++){
             if (answers.count(j->second.answer) == 0){
                 answers[j->second.answer] = 0;
             }
             answers[j->second.answer]++;
-            sumAnswers++;
         }
         char lower = tolower(currentLetter);
         if (ans.rfind(lower, 0) == 0 && ((!currentCategory && countries.count(ans)) || (currentCategory && cities.count(ans)))){
-            // TODO : Premiowanie unikalnych odpowiedzi ( zmienne wyżej )
-            // TODO : Premiowanie czasu ( globalne zmienne wyżej )
-            currentPlayers[i->first].points += uniqueAnswer;
+            std::cout << currentPlayers[i->first].time - questionTime << std::endl;
+            if (currentPlayers[i->first].time != 0){
+                if (double(currentPlayers[i->first].time - questionTime) < firstThresholdTime){
+                    std::cout << "Assigning points for first threshold" << std::endl;
+                    currentPlayers[i->first].points += firstThresholdPoints;
+                } else if (double(currentPlayers[i->first].time - questionTime) < secondThresholdTime){
+                    std::cout << "Assigning points for second threshold" << std::endl;
+                    currentPlayers[i->first].points += secondThresholdPoints;
+                }
+            }
+            if (answers[i->second.answer] > 1){
+                currentPlayers[i->first].points += notUniqueAnswer;
+                std::cout << "Not Unique Ans" << answers[i->second.answer] << std::endl;
+            } else{
+                currentPlayers[i->first].points += uniqueAnswer;
+                std::cout << "Unique Ans" << std::endl;
+            }
         }
     }
 }
@@ -260,7 +277,8 @@ void startRound(){
             send(i->second.fd, msg, strlen(msg), 0);
         }
     }
-    alarm(15);
+    alarm(roundTime);
+    time(&questionTime);
     std::cout << msg << std::endl;
 }
 
@@ -307,7 +325,7 @@ int main(int argc, char ** argv) {
         return 1;
     }
     servFd = socket(AF_INET, SOCK_STREAM, 0);
-    sockaddr_in serverAddr{.sin_family=AF_INET, .sin_port=htons((short)port), .sin_addr={INADDR_ANY}};
+    sockaddr_in serverAddr{.sin_family=AF_INET, .sin_port=htons((short)port), .sin_addr={INADDR_ANY}, .sin_zero=0};
 
     int res = bind(servFd, (sockaddr*) &serverAddr, sizeof(serverAddr));
     if(res) error(1, errno, "bind failed");
@@ -323,7 +341,7 @@ int main(int argc, char ** argv) {
     epoll_event epollEvent;
 
     epollEvent.events = EPOLLIN;
-    epollEvent.data.u64 = servFd;
+    epollEvent.data.fd = servFd;
     // adding server socket to epoll, so we can accept new connections
     epoll_ctl(epollCr, EPOLL_CTL_ADD, servFd, &epollEvent);
     initData();
@@ -336,15 +354,19 @@ int main(int argc, char ** argv) {
 
     int sigFd = signalfd(-1, &mask, 0);
     epollEvent.events = EPOLLIN;
-    epollEvent.data.u64 = sigFd;
+    epollEvent.data.fd = sigFd;
     epoll_ctl(epollCr, EPOLL_CTL_ADD, sigFd, &epollEvent);
     // main loop
     while(true){
         // waiting for events
         int epollWait = epoll_wait(epollCr, &epollEvent, 1, -1);
+        // TODO: make sure this is safe and won't brake anything, right now it's only to avoid warnings
+        if (epollWait == -1){
+            break;
+        }
         // if we can accept new connection
-        if (epollEvent.events & EPOLLIN && epollEvent.data.u64 == servFd){
-            sockaddr_in clientAddr{0};
+        if (epollEvent.events & EPOLLIN && epollEvent.data.fd == servFd){
+            sockaddr_in clientAddr;
             socklen_t clientAddrLen = sizeof(clientAddr);
 
             int clientFd = accept(servFd, (sockaddr*)&clientAddr, &clientAddrLen);
@@ -357,9 +379,9 @@ int main(int argc, char ** argv) {
             currentPlayers[clientFd] = p;
             // adding new client to epoll
             epollEvent.events = EPOLLIN;
-            epollEvent.data.u64 = clientFd;
+            epollEvent.data.fd = clientFd;
             epoll_ctl(epollCr, EPOLL_CTL_ADD, clientFd, &epollEvent);
-        } else if (epollEvent.data.u64 == sigFd){
+        } else if (epollEvent.data.fd == sigFd){
             struct signalfd_siginfo sfd_si;
             if (read(sigFd, &sfd_si, sizeof(sfd_si)) == -1)
                 error(1, errno, "Error reading signal");
@@ -379,9 +401,9 @@ int main(int argc, char ** argv) {
             }
         }
         // if we have a message from client
-        else if (epollEvent.events & EPOLLIN && epollEvent.data.u64 != servFd && epollEvent.data.u64 != sigFd){
+        else if (epollEvent.events & EPOLLIN && epollEvent.data.fd != servFd && epollEvent.data.fd != sigFd){
 
-            int cFd = (int) epollEvent.data.u64;
+            int cFd = (int) epollEvent.data.fd;
             std::cout << "Received message from client " << cFd << std::endl;
             std::string msg;
             if (currentMessages.count(cFd) == 1){
@@ -481,6 +503,7 @@ int main(int argc, char ** argv) {
             }
             if (msg.rfind("ANS", 0) == 0){
                 currentPlayers[cFd].answer = msg.substr(4);
+                time(&currentPlayers[cFd].time);
                 std::cout << currentPlayers[cFd].answer << std::endl;
             }
             if (msg == "ACTIVE:OK"){
