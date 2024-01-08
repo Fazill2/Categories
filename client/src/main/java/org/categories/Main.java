@@ -4,21 +4,18 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.util.Properties;
 
 public class Main {
     static int round;
     public static Connector connector = new Connector();
 
     static GameFrame gameFrame = new GameFrame(500,500);
+    private static final GameParams params = new GameParams();
 
     public static void main(String[] args) {
-        Config config = new Config();
-        Properties properties = config.readConfigFile("config.properties");
-        String host = properties.getProperty("host", "localhost");
-        int port = Integer.parseInt(properties.getProperty("port", "2100"));
 
-        connectToLocalhost(gameFrame, connector, host, port);
+
+        connectToLocalhost(gameFrame, connector, params.getHost(), params.getPort());
         loginActionListener(gameFrame, connector);
         sendAnswerActionListener(gameFrame, connector);
         lobbyReadyActionListener(gameFrame, connector);
@@ -138,7 +135,7 @@ public class Main {
             gameFrame.letterLabel.setText("Current letter: " + msg[2]);
             String category = (Integer.parseInt(msg[3]) == 0) ? "Countries" : "Cities";
             gameFrame.categoryLabel.setText("Current category: " + category);
-            // timer();
+            timer();
             gameFrame.setContentPane(gameFrame.gamePanel);
             gameFrame.validate();
         } else if (response.startsWith("FPOINTS")){
@@ -159,7 +156,7 @@ public class Main {
     }
 
     private static void timer() {
-        int initialTime = 14;
+        int initialTime = params.getRoundTime()-1;
         int countdownInterval = 1000;
 
         Timer countdownTimer = new Timer(countdownInterval, new ActionListener() {
