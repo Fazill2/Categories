@@ -9,6 +9,7 @@ public class GameFrame extends JFrame {
 
     JTextField textField;
     JTextField gameTextField;
+    // FIXME display points here
     JLabel pointsLabel = new JLabel("Points: 0");
     JButton submitButton = new JButton("Submit Answer");
     JButton loginButton = new JButton("Submit Name");
@@ -32,10 +33,10 @@ public class GameFrame extends JFrame {
     JTable resultsTable;
     DefaultTableModel model;
 
-    public GameFrame(int width, int height){
+    public GameFrame(int width, int height) {
         super("Categories");
         this.setSize(width, height);
-        this.setLocation(50,50);
+        this.setLocation(50, 50);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 
@@ -45,7 +46,7 @@ public class GameFrame extends JFrame {
         categoryLabel = new JLabel("Current category: ");
         letterLabel = new JLabel("Current letter: ");
         gameTextField = new JTextField(26);
-        timer = new JProgressBar(0,gameParams.getRoundTime());
+        timer = new JProgressBar(0, gameParams.getRoundTime());
         timer.setValue(gameParams.getRoundTime());
         gamePanel.add(categoryLabel);
         gamePanel.add(letterLabel);
@@ -66,7 +67,7 @@ public class GameFrame extends JFrame {
     public void createLobbyPanel(String user) {
         username = user;
         lobbyPanel = new JPanel();
-        lobbyLabel = new JLabel(username+", are you ready to play?");
+        lobbyLabel = new JLabel(username + ", are you ready to play?");
         lobbyPanel.add(lobbyLabel);
         lobbyPanel.add(lobbyReadyButton);
     }
@@ -87,7 +88,7 @@ public class GameFrame extends JFrame {
         };
 
         // Column Names
-        String[] columnNames = {"Username", "Points" };
+        String[] columnNames = {"Username", "Points"};
         model = new DefaultTableModel(data, columnNames);
         // Initializing the JTable
         resultsTable = new JTable(model);
@@ -97,7 +98,7 @@ public class GameFrame extends JFrame {
         resultsPanel.add(sp);
     }
 
-    public void error(String message){
+    public void error(String message) {
         JOptionPane.showMessageDialog(null, message);
     }
 }

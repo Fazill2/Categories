@@ -11,12 +11,10 @@ public class Main {
     public static String host;
     public static int port;
 
-    static GameFrame gameFrame = new GameFrame(500,500);
+    static GameFrame gameFrame = new GameFrame(500, 500);
     private static final GameParams params = new GameParams();
 
     public static void main(String[] args) {
-
-
         connectToLocalhost(gameFrame, connector, params.getHost(), params.getPort());
         loginActionListener(gameFrame, connector);
         sendAnswerActionListener(gameFrame, connector);
@@ -31,7 +29,7 @@ public class Main {
                 if (JOptionPane.showConfirmDialog(gameFrame,
                         "Are you sure you want to close this window?", "Close Window?",
                         JOptionPane.YES_NO_OPTION,
-                        JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
+                        JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
                     System.exit(0);
                 } else {
                     gameFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -129,8 +127,8 @@ public class Main {
         receiveThread.start();
     }
 
-    private static void handleResponse(String response){
-        if (response.equals("OK")){
+    private static void handleResponse(String response) {
+        if (response.equals("OK")) {
             gameFrame.createLobbyPanel(getText(gameFrame));
             gameFrame.setContentPane(gameFrame.lobbyPanel);
             gameFrame.validate();
@@ -141,18 +139,18 @@ public class Main {
             gameFrame.setContentPane(gameFrame.waitingPanel);
             gameFrame.validate();
         } else if (response.startsWith("WFACTIVE")) {
-            String [] msg = response.split(":");
+            String[] msg = response.split(":");
             gameFrame.createWaitingPanel();
             gameFrame.waitingLabel.setText("Waiting for at least 2 players to start the game...");
             gameFrame.totalUsers.setText("Currently " + msg[2] + "/" + msg[1] + " players are ready.");
             gameFrame.setContentPane(gameFrame.waitingPanel);
             gameFrame.validate();
-        } else if (response.equals("ENDGAME")){
+        } else if (response.equals("ENDGAME")) {
             gameFrame.createGameResultsPanel();
             gameFrame.setContentPane(gameFrame.resultsPanel);
             gameFrame.validate();
-        } else if (response.startsWith("ROUND")){
-            String [] msg = response.split(":");
+        } else if (response.startsWith("ROUND")) {
+            String[] msg = response.split(":");
             gameFrame.createGamePanel();
             round = Integer.parseInt(msg[1]);
             gameFrame.letterLabel.setText("Current letter: " + msg[2]);
@@ -161,11 +159,11 @@ public class Main {
             timer();
             gameFrame.setContentPane(gameFrame.gamePanel);
             gameFrame.validate();
-        } else if (response.startsWith("FPOINTS")){
-            String [] msg = response.split(":");
+        } else if (response.startsWith("FPOINTS")) {
+            String[] msg = response.split(":");
             gameFrame.model.insertRow(gameFrame.model.getRowCount(), new Object[]{msg[1], msg[2]});
         } else if (response.equals("RESTART")) {
-            if (gameFrame.username != null){
+            if (gameFrame.username != null) {
                 gameFrame.createLobbyPanel(gameFrame.username);
                 gameFrame.setContentPane(gameFrame.lobbyPanel);
                 gameFrame.validate();
@@ -179,7 +177,7 @@ public class Main {
     }
 
     private static void timer() {
-        int initialTime = params.getRoundTime()-1;
+        int initialTime = params.getRoundTime() - 1;
         int countdownInterval = 1000;
 
         Timer countdownTimer = new Timer(countdownInterval, new ActionListener() {
