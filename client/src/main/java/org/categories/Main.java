@@ -8,6 +8,8 @@ import java.io.IOException;
 public class Main {
     static int round;
     public static Connector connector = new Connector();
+    public static String host;
+    public static int port;
 
     static GameFrame gameFrame = new GameFrame(500,500);
     private static final GameParams params = new GameParams();
@@ -39,6 +41,8 @@ public class Main {
     }
 
     private static void connectToLocalhost(GameFrame gameFrame, Connector connector, String host, int port) {
+        Main.host = host;
+        Main.port = port;
         SwingUtilities.invokeLater(
                 () -> {
                     gameFrame.setVisible(true);
@@ -51,7 +55,7 @@ public class Main {
                             startReceivingThread();
                             break;
                         } catch (Exception e) {
-                            gameFrame.error("Connection error.");
+                            gameFrame.error("Connection error. Press OK to reconnect.");
                         }
                     }
                 }
@@ -106,8 +110,20 @@ public class Main {
                     String response = connector.receiveMessage().trim();
                     handleResponse(response);
                 }
-            } catch (IOException e) {
-                throw new IllegalStateException("Issue with receiving messages", e);
+            } catch (IOException | IllegalStateException e) {
+                gameFrame.setVisible(true);
+                gameFrame.createLoginPanel();
+                gameFrame.setContentPane(gameFrame.loginPanel);
+                gameFrame.validate();
+                while (true) {
+                    try {
+                        connector.connect(host, port);
+                        startReceivingThread();
+                        break;
+                    } catch (Exception ex) {
+                        gameFrame.error("Connection error. Press OK to reconnect.");
+                    }
+                }
             }
         });
         receiveThread.start();
@@ -120,8 +136,15 @@ public class Main {
             gameFrame.validate();
         } else if (response.equals("NO")) {
             gameFrame.error("Login was taken");
-        } else if (response.equals("WAIT")){
+        } else if (response.equals("WAIT")) {
             gameFrame.createWaitingPanel();
+            gameFrame.setContentPane(gameFrame.waitingPanel);
+            gameFrame.validate();
+        } else if (response.startsWith("WFACTIVE")) {
+            String [] msg = response.split(":");
+            gameFrame.createWaitingPanel();
+            gameFrame.waitingLabel.setText("Waiting for at least 2 players to start the game...");
+            gameFrame.totalUsers.setText("Currently " + msg[2] + "/" + msg[1] + " players are ready.");
             gameFrame.setContentPane(gameFrame.waitingPanel);
             gameFrame.validate();
         } else if (response.equals("ENDGAME")){

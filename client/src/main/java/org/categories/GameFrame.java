@@ -73,8 +73,8 @@ public class GameFrame extends JFrame {
 
     public void createWaitingPanel() {
         waitingPanel = new JPanel();
-        waitingLabel = new JLabel("Waiting for players..");
-        totalUsers = new JLabel("Currently 1/4 players are ready.");
+        waitingLabel = new JLabel("Waiting for next question...");
+        totalUsers = new JLabel("Game will begin shortly.");
 
         waitingPanel.add(waitingLabel);
         waitingPanel.add(totalUsers);

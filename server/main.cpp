@@ -123,17 +123,38 @@ int readConfigValue(const std::string& filename, const std::string& key) {
 
 std::map<int, Player> currentPlayers;
 
+void sendWaitMsg(){
+    if (!gameStarted){
+        char tempMsg[120] {};
+        char msg[256] {};
+        sprintf(tempMsg, "WFACTIVE:%d:%d", playersNum, activePlayers);
+        int len = strlen(tempMsg);
+        sprintf(msg, "%d%s", len, tempMsg);
+        for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
+            if (i->second.active){
+                send(i->second.fd, msg, strlen(msg), 0);
+            }
+        }
+    }
+}
+
+
 void endGame();
 
 // handles client disconnection
 void handleDisconnect(int clientFd){
     std::cout << "disconnecting" << std::endl;
+    if (currentPlayers[clientFd].active) {
+        activePlayers--;
+    }
+    if (currentPlayers[clientFd].login != ""){
+        playersNum--;
+    }
     currentPlayers.erase(clientFd);
     currentMessages.erase(clientFd);
     shutdown(clientFd, SHUT_RDWR);
     close(clientFd);
-    playersNum--;
-    activePlayers--;
+    sendWaitMsg();
     if (gameStarted && playersNum < 2){
         endGame();
     }
@@ -294,6 +315,7 @@ int handleActive(int clientFd){
     }
     currentPlayers[clientFd].active = true;
     activePlayers++;
+    sendWaitMsg();
     if (gameStarted){
         send(clientFd, "04WAIT", 6, 0);
     } else if (activePlayers >= 2 && activePlayers > playersNum/2){
@@ -372,7 +394,8 @@ int main(int argc, char ** argv) {
             int clientFd = accept(servFd, (sockaddr*)&clientAddr, &clientAddrLen);
             if(clientFd == -1){
                 perror("accept failed");
-                return 1;
+                continue;
+                // return 1;
             }
             Player p = Player();
             p.fd = clientFd;
@@ -495,6 +518,7 @@ int main(int argc, char ** argv) {
                     send(cFd, ok, 4, 0);
 
                     playersNum++;
+                    sendWaitMsg();
                 }
                 else {
                     char no[4] {'0', '2','N', 'O'};
