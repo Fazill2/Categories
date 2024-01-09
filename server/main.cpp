@@ -288,14 +288,25 @@ void startRound(){
     currentRound++;
     currentLetter = 'A' + rand()%26;
     currentCategory = rand()%2;
+
     char msg[256] {};
     int msgLen = (currentRound < 10) ? 11 : 12;
     sprintf(msg, "%dROUND:%d:%c:%d", msgLen, currentRound, currentLetter, currentCategory);
+
     for (auto i = currentPlayers.begin(); i != currentPlayers.end(); i++){
         i->second.answer = "";
         i->second.time = 0;
         if (i->second.active){
             send(i->second.fd, msg, strlen(msg), 0);
+            char pointsMsg[100] {};
+            std::string pointString = std::to_string(i->second.points);
+            int len = 7 + pointString.length();
+            if (len < 10) {
+            sprintf(pointsMsg, "0%dPOINTS:%d", len, i->second.points);
+            } else {
+                sprintf(pointsMsg, "%dPOINTS:%d", len, i->second.points);
+            }
+            send(i->second.fd, pointsMsg, strlen(pointsMsg), 0);
         }
     }
     alarm(roundTime);
@@ -339,7 +350,7 @@ int main(int argc, char ** argv) {
     secondThresholdTime = readConfigValue(filename, "secondThresholdTime");
     firstThresholdPoints = readConfigValue(filename, "firstThresholdPoints");
     secondThresholdPoints = readConfigValue(filename, "secondThresholdPoints");
-
+    srand((unsigned int)time(NULL));
     char tempTimeMsg[100];
     sprintf(tempTimeMsg, "TIME:%d", roundTime);
     char timeMsg[256];

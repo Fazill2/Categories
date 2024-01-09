@@ -53,7 +53,7 @@ public class Main {
                             startReceivingThread();
                             break;
                         } catch (Exception e) {
-                            gameFrame.error("Connection error. Press OK to reconnect.");
+                            gameFrame.error("Connection error. Press OK to reconnect. Close to shut down the program.");
                         }
                     }
                 }
@@ -119,7 +119,7 @@ public class Main {
                         startReceivingThread();
                         break;
                     } catch (Exception ex) {
-                        gameFrame.error("Connection error. Press OK to reconnect.");
+                        gameFrame.error("Connection error. Press OK to reconnect. Close to shut down program.");
                     }
                 }
             }
@@ -161,6 +161,10 @@ public class Main {
             gameFrame.categoryLabel.setText("Current category: " + category);
             timer();
             gameFrame.setContentPane(gameFrame.gamePanel);
+            gameFrame.validate();
+        } else if (response.startsWith("POINTS")) {
+            System.out.println(response);
+            gameFrame.pointsLabel.setText("Points: " + response.split(":")[1]);
             gameFrame.validate();
         } else if (response.startsWith("FPOINTS")) {
             String[] msg = response.split(":");
