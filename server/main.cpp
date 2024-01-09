@@ -308,7 +308,7 @@ int main(int argc, char ** argv) {
         printf("Usage: %s <port>\n", argv[0]);
         return 1;
     }
-    std::string filename = "../config.properties";
+    std::string filename = "./config.properties";
     maxRounds = readConfigValue(filename,"rounds");
     roundTime = readConfigValue(filename, "roundTime");
     uniqueAnswer = readConfigValue(filename, "uniqueAnswer");
