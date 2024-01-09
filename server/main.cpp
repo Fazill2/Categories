@@ -340,6 +340,15 @@ int main(int argc, char ** argv) {
     firstThresholdPoints = readConfigValue(filename, "firstThresholdPoints");
     secondThresholdPoints = readConfigValue(filename, "secondThresholdPoints");
 
+    char tempTimeMsg[100];
+    sprintf(tempTimeMsg, "TIME:%d", roundTime);
+    char timeMsg[256];
+    int tempTimeLen = strlen(tempTimeMsg);
+    if (tempTimeLen < 10) {
+        sprintf(timeMsg, "0%d%s", tempTimeLen, tempTimeMsg);
+    } else {
+        sprintf(timeMsg, "%d%s", tempTimeLen, tempTimeMsg);
+    }
     char * endp;
     long port = strtol(argv[1], &endp, 10);
     if(*endp || port > 65535 || port < 1){
@@ -433,7 +442,7 @@ int main(int argc, char ** argv) {
                 if (currentMessages[cFd].isSize == true){
                     std::cout << "incomplete size" << std::endl;
                     int remainingSize = currentMessages[cFd].expectedSize-currentMessages[cFd].size;
-                    char sizeBuf[remainingSize] {};
+                    char sizeBuf[remainingSize];
                     int rcvSize = recv(cFd, sizeBuf, remainingSize, MSG_DONTWAIT);
                     if (rcvSize <= 0){
                         handleDisconnect((int) cFd);
@@ -445,7 +454,7 @@ int main(int argc, char ** argv) {
                     }
                     int size = std::stoi(currentMessages[cFd].msg + std::string(sizeBuf, rcvSize));
                     currentMessages.erase(cFd);
-                    char buf[size] {};
+                    char buf[size];
                     rcvSize = recv(cFd, buf, size, MSG_DONTWAIT);
                     if (rcvSize <= 0){
                         handleDisconnect((int) cFd);
@@ -463,7 +472,7 @@ int main(int argc, char ** argv) {
                 } else{
                     std::cout << "incomplete msg" << std::endl;
                     int remainingSize = currentMessages[cFd].expectedSize-currentMessages[cFd].size;
-                    char buf[remainingSize] {};
+                    char buf[remainingSize];
                     int rcvSize = recv(cFd, buf, remainingSize, MSG_DONTWAIT);
                     if (rcvSize <= 0){
                         handleDisconnect((int) cFd);
@@ -495,7 +504,7 @@ int main(int argc, char ** argv) {
                 std::cout << "new msg" << std::endl;
                 int size = getNumFromBuf(sizeBuf);
                 std::cout << size << std::endl;
-                char buf[size] {};
+                char buf[size];
                 rcvSize = recv(cFd, buf, size, MSG_DONTWAIT);
                 if (rcvSize <= 0){
                     handleDisconnect((int) cFd);
@@ -518,6 +527,7 @@ int main(int argc, char ** argv) {
                     send(cFd, ok, 4, 0);
 
                     playersNum++;
+                    send(cFd, timeMsg, strlen(timeMsg), 0);
                     sendWaitMsg();
                 }
                 else {

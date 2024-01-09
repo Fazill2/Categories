@@ -6,6 +6,7 @@ import javax.swing.table.DefaultTableModel;
 public class GameFrame extends JFrame {
     String username;
     GameParams gameParams = new GameParams();
+    int roundTime = 10;
 
     JTextField textField;
     JTextField gameTextField;
@@ -46,7 +47,7 @@ public class GameFrame extends JFrame {
         categoryLabel = new JLabel("Current category: ");
         letterLabel = new JLabel("Current letter: ");
         gameTextField = new JTextField(26);
-        timer = new JProgressBar(0, gameParams.getRoundTime());
+        timer = new JProgressBar(0, roundTime);
         timer.setValue(gameParams.getRoundTime());
         gamePanel.add(categoryLabel);
         gamePanel.add(letterLabel);

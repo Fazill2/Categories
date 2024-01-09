@@ -141,7 +141,7 @@ public class Main {
         } else if (response.startsWith("WFACTIVE")) {
             String[] msg = response.split(":");
             gameFrame.createWaitingPanel();
-            gameFrame.waitingLabel.setText("Waiting for at least 2 players to start the game...");
+            gameFrame.waitingLabel.setText("Waiting for more active players to start the game...");
             gameFrame.totalUsers.setText("Currently " + msg[2] + "/" + msg[1] + " players are ready.");
             gameFrame.setContentPane(gameFrame.waitingPanel);
             gameFrame.validate();
@@ -149,6 +149,9 @@ public class Main {
             gameFrame.createGameResultsPanel();
             gameFrame.setContentPane(gameFrame.resultsPanel);
             gameFrame.validate();
+        } else if (response.startsWith("TIME")) {
+            String [] msg = response.split(":");
+            gameFrame.roundTime = Integer.parseInt(msg[1]);
         } else if (response.startsWith("ROUND")) {
             String[] msg = response.split(":");
             gameFrame.createGamePanel();
