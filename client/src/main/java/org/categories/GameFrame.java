@@ -48,7 +48,7 @@ public class GameFrame extends JFrame {
         letterLabel = new JLabel("Current letter: ");
         gameTextField = new JTextField(26);
         timer = new JProgressBar(0, roundTime);
-        timer.setValue(gameParams.getRoundTime());
+        timer.setValue(roundTime);
         gamePanel.add(categoryLabel);
         gamePanel.add(letterLabel);
         gamePanel.add(gameTextField);

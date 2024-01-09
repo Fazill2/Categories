@@ -180,7 +180,7 @@ public class Main {
     }
 
     private static void timer() {
-        int initialTime = params.getRoundTime() - 1;
+        int initialTime = gameFrame.roundTime - 1;
         int countdownInterval = 1000;
 
         Timer countdownTimer = new Timer(countdownInterval, new ActionListener() {
