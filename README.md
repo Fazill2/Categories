@@ -3,7 +3,7 @@ Web version of categories word game
 
 
 ## 1. Gra będzie obsługiwała dwa tryby:
-- Państwa: gracze będą podawać stolice państw.
+- Państwa: gracze będą podawać państwa.
 - Miasta: gracze będą podawać miasta, które należą do danego państwa.
 Tryb będzie losowany
 
