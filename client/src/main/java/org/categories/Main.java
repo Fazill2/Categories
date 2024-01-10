@@ -53,7 +53,7 @@ public class Main {
                             startReceivingThread();
                             break;
                         } catch (Exception e) {
-                            gameFrame.error("Connection error. Press OK to reconnect.");
+                            gameFrame.error("Connection error. Press OK to reconnect. Close to shut down the program.");
                         }
                     }
                 }
@@ -119,7 +119,7 @@ public class Main {
                         startReceivingThread();
                         break;
                     } catch (Exception ex) {
-                        gameFrame.error("Connection error. Press OK to reconnect.");
+                        gameFrame.error("Connection error. Press OK to reconnect. Close to shut down program.");
                     }
                 }
             }
@@ -141,7 +141,7 @@ public class Main {
         } else if (response.startsWith("WFACTIVE")) {
             String[] msg = response.split(":");
             gameFrame.createWaitingPanel();
-            gameFrame.waitingLabel.setText("Waiting for at least 2 players to start the game...");
+            gameFrame.waitingLabel.setText("Waiting for more active players to start the game...");
             gameFrame.totalUsers.setText("Currently " + msg[2] + "/" + msg[1] + " players are ready.");
             gameFrame.setContentPane(gameFrame.waitingPanel);
             gameFrame.validate();
@@ -149,6 +149,9 @@ public class Main {
             gameFrame.createGameResultsPanel();
             gameFrame.setContentPane(gameFrame.resultsPanel);
             gameFrame.validate();
+        } else if (response.startsWith("TIME")) {
+            String [] msg = response.split(":");
+            gameFrame.roundTime = Integer.parseInt(msg[1]);
         } else if (response.startsWith("ROUND")) {
             String[] msg = response.split(":");
             gameFrame.createGamePanel();
@@ -158,6 +161,10 @@ public class Main {
             gameFrame.categoryLabel.setText("Current category: " + category);
             timer();
             gameFrame.setContentPane(gameFrame.gamePanel);
+            gameFrame.validate();
+        } else if (response.startsWith("POINTS")) {
+            System.out.println(response);
+            gameFrame.pointsLabel.setText("Points: " + response.split(":")[1]);
             gameFrame.validate();
         } else if (response.startsWith("FPOINTS")) {
             String[] msg = response.split(":");
@@ -177,7 +184,7 @@ public class Main {
     }
 
     private static void timer() {
-        int initialTime = params.getRoundTime() - 1;
+        int initialTime = gameFrame.roundTime - 1;
         int countdownInterval = 1000;
 
         Timer countdownTimer = new Timer(countdownInterval, new ActionListener() {
