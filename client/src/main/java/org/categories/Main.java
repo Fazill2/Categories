@@ -67,6 +67,8 @@ public class Main {
                 connector.send(msg);
             } catch (IOException ex) {
                 gameFrame.error(ex.getMessage());
+            } catch (IllegalStateException ex) {
+                JOptionPane.showMessageDialog(gameFrame, "Make sure your input is not empty and no longer than 40 characters");
             }
         });
     }
@@ -78,6 +80,8 @@ public class Main {
                 connector.send(msg);
             } catch (IOException ex) {
                 gameFrame.error(ex.getMessage());
+            } catch (IllegalStateException ex) {
+                JOptionPane.showMessageDialog(gameFrame, "Make sure your input is not empty and no longer than 40 characters");
             }
         });
     }
@@ -94,10 +98,16 @@ public class Main {
     }
 
     private static String getText(GameFrame gameFrame) {
+        if (gameFrame.textField.getText().isEmpty() || gameFrame.textField.getText().length() > 40){
+            throw new IllegalStateException("Message too long");
+        }
         return gameFrame.textField.getText();
     }
 
     private static String getUserInput(GameFrame gameFrame) {
+        if (gameFrame.textField.getText().isEmpty() || gameFrame.textField.getText().length() > 40){
+            throw new IllegalStateException("Message too long");
+        }
         return gameFrame.gameTextField.getText();
     }
 

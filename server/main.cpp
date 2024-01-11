@@ -417,6 +417,7 @@ int main(int argc, char ** argv) {
                 continue;
                 // return 1;
             }
+            std::cout << "Accepting client: " << clientFd << std::endl; 
             Player p = Player();
             p.fd = clientFd;
             currentPlayers[clientFd] = p;
